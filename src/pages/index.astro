@@ -1,0 +1,244 @@
+---
+import Base from "../layouts/Base.astro";
+import { getCollection, getEntry, render } from "astro:content";
+
+const projects = (await getCollection("projects")).sort((a, b) => a.data.order - b.data.order);
+
+const intro = await getEntry("home", "intro");
+const outro = await getEntry("home", "outro");
+const { Content: Intro } = await render(intro!);
+const { Content: Outro } = await render(outro!);
+---
+<Base title={`${intro!.data.title} — Портфолио`}>
+  <main class="wrap">
+    <header class="hero">
+      <h1>{intro!.data.title}</h1>
+    </header>
+
+    <div class="content home-content">
+      <Intro />
+    </div>
+
+    <section>
+      <h2>Проекты</h2>
+      <div class="grid">
+        {projects.map((p) => (
+          <a class="card" href={`/projects/${p.id}/`} data-project={p.id}>
+            <span class="card-period">{p.data.period}</span>
+            <h3>{p.data.title}</h3>
+            <p>{p.data.summary}</p>
+          </a>
+        ))}
+      </div>
+    </section>
+
+    <div class="content home-content">
+      <Outro />
+    </div>
+  </main>
+
+  <div id="drawer-backdrop" hidden></div>
+  <aside id="drawer" hidden aria-label="Описание проекта">
+    <button id="drawer-close" type="button" aria-label="Закрыть">✕</button>
+    <div id="drawer-content"></div>
+  </aside>
+</Base>
+
+<script>
+  const drawer = document.getElementById("drawer")!;
+  const backdrop = document.getElementById("drawer-backdrop")!;
+  const content = document.getElementById("drawer-content")!;
+  const closeButton = document.getElementById("drawer-close")!;
+  const homeTitle = document.title;
+  const cache = new Map<string, string>();
+
+  async function loadProject(slug: string) {
+    if (!cache.has(slug)) {
+      const response = await fetch(`/projects/${slug}/`);
+      const html = await response.text();
+      const parsed = new DOMParser().parseFromString(html, "text/html");
+      const body = parsed.getElementById("project-body");
+      if (!body) throw new Error(`no #project-body in /projects/${slug}/`);
+      cache.set(slug, body.innerHTML);
+    }
+    return cache.get(slug)!;
+  }
+
+  async function open(slug: string, push: boolean) {
+    content.innerHTML = await loadProject(slug);
+    drawer.hidden = false;
+    backdrop.hidden = false;
+    document.body.classList.add("drawer-open");
+    // Let the element paint in its hidden state before transitioning it in.
+    requestAnimationFrame(() => drawer.classList.add("open"));
+    drawer.scrollTop = 0;
+
+    const title = content.querySelector("h1")?.textContent ?? "";
+    document.title = `${title} — Варганов Арсений`;
+    if (push) history.pushState({ slug }, "", `/projects/${slug}/`);
+  }
+
+  function close(push: boolean) {
+    drawer.classList.remove("open");
+    backdrop.hidden = true;
+    document.body.classList.remove("drawer-open");
+    document.title = homeTitle;
+    if (push) history.pushState({}, "", "/");
+    setTimeout(() => {
+      if (!drawer.classList.contains("open")) drawer.hidden = true;
+    }, 200);
+  }
+
+  document.addEventListener("click", (event) => {
+    const mouseEvent = event as MouseEvent;
+    // Let modified clicks fall through so "open in new tab" keeps working.
+    if (mouseEvent.metaKey || mouseEvent.ctrlKey || mouseEvent.shiftKey || mouseEvent.button !== 0) return;
+
+    const card = (event.target as HTMLElement).closest<HTMLElement>("[data-project]");
+    if (card) {
+      event.preventDefault();
+      open(card.dataset.project!, true);
+      return;
+    }
+
+    // Markdown links written as /projects/<slug>/ open in the drawer too.
+    const link = (event.target as HTMLElement).closest<HTMLAnchorElement>(".home-content a");
+    const match = link?.getAttribute("href")?.match(/^\/projects\/([^/]+)\/?$/);
+    if (match) {
+      event.preventDefault();
+      open(match[1], true);
+    }
+  });
+
+  closeButton.addEventListener("click", () => close(true));
+  backdrop.addEventListener("click", () => close(true));
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && drawer.classList.contains("open")) close(true);
+  });
+
+  window.addEventListener("popstate", (event) => {
+    const slug = (event.state as { slug?: string } | null)?.slug;
+    if (slug) open(slug, false);
+    else close(false);
+  });
+
+  if (history.state?.slug) open(history.state.slug, false);
+</script>
+
+<style is:global>
+  body.drawer-open { overflow: hidden; }
+
+  #drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 10;
+  }
+
+  #drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(760px, 100%);
+    background: var(--bg);
+    border-left: 1px solid var(--border);
+    box-shadow: -20px 0 60px rgba(0, 0, 0, 0.5);
+    overflow-y: auto;
+    z-index: 11;
+    transform: translateX(100%);
+    transition: transform 0.22s ease;
+  }
+
+  #drawer.open { transform: translateX(0); }
+
+  #drawer-content { padding: 3.5rem 2.5rem 4rem; }
+
+  #drawer-close {
+    position: sticky;
+    top: 1rem;
+    float: right;
+    margin-right: 1rem;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-elevated);
+    color: var(--text);
+    font-size: 1rem;
+    cursor: pointer;
+    z-index: 1;
+  }
+  #drawer-close:hover { border-color: var(--accent); color: var(--accent); }
+
+  @media (max-width: 640px) {
+    #drawer-content { padding: 3.5rem 1.25rem 3rem; }
+  }
+
+  /* The home page is authored as markdown, so its blocks are styled here. */
+  .home-content > :first-child { margin-top: 0; }
+
+  .home-content h2 {
+    font-size: 1.35rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+    margin: 3rem 0 1rem;
+  }
+
+  .home-content blockquote {
+    margin: 1.5rem 0;
+    padding: 1.25rem 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-elevated);
+  }
+  .home-content blockquote p { margin: 0.35em 0; }
+
+  .home-content hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 3rem 0 1.5rem;
+  }
+</style>
+
+<style>
+  .hero { margin-bottom: 1.5rem; }
+  .hero h1 { font-size: 2.25rem; margin: 0; }
+
+  section { margin-top: 3rem; }
+  section h2 {
+    font-size: 1.35rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 1rem;
+  }
+
+  .card {
+    display: block;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    text-decoration: none;
+    color: var(--text);
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+  .card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+  .card-period {
+    display: block;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    margin-bottom: 0.35rem;
+  }
+  .card h3 { margin: 0 0 0.5rem; font-size: 1.05rem; }
+  .card p { margin: 0; color: var(--text-dim); font-size: 0.9rem; }
+</style>
