@@ -8,6 +8,7 @@ const projects = defineCollection({
     period: z.string(),
     summary: z.string(),
     order: z.number(),
+    cover: z.string().optional(),
   }),
 });
 

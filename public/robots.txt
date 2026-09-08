@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://varganovarsen.github.io/sitemap-index.xml

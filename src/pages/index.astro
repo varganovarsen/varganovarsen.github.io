@@ -2,14 +2,22 @@
 import Base from "../layouts/Base.astro";
 import { getCollection, getEntry, render } from "astro:content";
 
-const projects = (await getCollection("projects")).sort((a, b) => a.data.order - b.data.order);
+const entries = (await getCollection("projects")).sort((a, b) => a.data.order - b.data.order);
+
+// A card shows the project's own cover, falling back to the first image in its text.
+const projects = entries.map((entry) => ({
+  entry,
+  cover: entry.data.cover ?? entry.body?.match(/!\[[^\]]*\]\((\/[^)\s]+\.(?:png|jpe?g|webp|gif))\)/)?.[1],
+}));
 
 const intro = await getEntry("home", "intro");
 const outro = await getEntry("home", "outro");
 const { Content: Intro } = await render(intro!);
 const { Content: Outro } = await render(outro!);
+
+const description = intro!.body?.split("\n\n")[0]?.replace(/\s+/g, " ").trim().slice(0, 200);
 ---
-<Base title={`${intro!.data.title} — Портфолио`}>
+<Base title={`${intro!.data.title} — Портфолио`} description={description}>
   <main class="wrap">
     <header class="hero">
       <h1>{intro!.data.title}</h1>
@@ -22,11 +30,18 @@ const { Content: Outro } = await render(outro!);
     <section>
       <h2>Проекты</h2>
       <div class="grid">
-        {projects.map((p) => (
-          <a class="card" href={`/projects/${p.id}/`} data-project={p.id}>
-            <span class="card-period">{p.data.period}</span>
-            <h3>{p.data.title}</h3>
-            <p>{p.data.summary}</p>
+        {projects.map(({ entry, cover }) => (
+          <a class="card" href={`/projects/${entry.id}/`} data-project={entry.id}>
+            {cover ? (
+              <img class="card-cover" src={cover} alt="" loading="lazy" />
+            ) : (
+              <span class="card-cover card-cover-empty">{entry.data.period}</span>
+            )}
+            <span class="card-body">
+              <span class="card-period">{entry.data.period}</span>
+              <span class="card-title">{entry.data.title}</span>
+              <span class="card-summary">{entry.data.summary}</span>
+            </span>
           </a>
         ))}
       </div>
@@ -37,26 +52,28 @@ const { Content: Outro } = await render(outro!);
     </div>
   </main>
 
-  <div id="drawer-backdrop" hidden></div>
-  <aside id="drawer" hidden aria-label="Описание проекта">
+  <dialog id="drawer" aria-label="Описание проекта">
     <button id="drawer-close" type="button" aria-label="Закрыть">✕</button>
     <div id="drawer-content"></div>
-  </aside>
+  </dialog>
 </Base>
 
 <script>
-  const drawer = document.getElementById("drawer")!;
-  const backdrop = document.getElementById("drawer-backdrop")!;
+  const drawer = document.getElementById("drawer") as HTMLDialogElement;
   const content = document.getElementById("drawer-content")!;
   const closeButton = document.getElementById("drawer-close")!;
   const homeTitle = document.title;
   const cache = new Map<string, string>();
 
+  // Tracks whether the open drawer owns a history entry, so closing can go back
+  // instead of stacking another one.
+  let pushedEntry = false;
+
   async function loadProject(slug: string) {
     if (!cache.has(slug)) {
       const response = await fetch(`/projects/${slug}/`);
-      const html = await response.text();
-      const parsed = new DOMParser().parseFromString(html, "text/html");
+      if (!response.ok) throw new Error(`${response.status} for /projects/${slug}/`);
+      const parsed = new DOMParser().parseFromString(await response.text(), "text/html");
       const body = parsed.getElementById("project-body");
       if (!body) throw new Error(`no #project-body in /projects/${slug}/`);
       cache.set(slug, body.innerHTML);
@@ -65,28 +82,67 @@ const { Content: Outro } = await render(outro!);
   }
 
   async function open(slug: string, push: boolean) {
-    content.innerHTML = await loadProject(slug);
-    drawer.hidden = false;
-    backdrop.hidden = false;
-    document.body.classList.add("drawer-open");
-    // Let the element paint in its hidden state before transitioning it in.
+    let html: string;
+    try {
+      html = await loadProject(slug);
+    } catch {
+      // Never leave a dead card: fall back to the standalone page.
+      location.href = `/projects/${slug}/`;
+      return;
+    }
+
+    content.innerHTML = html;
+    document.dispatchEvent(new CustomEvent("drawer:content"));
+
+    if (!drawer.open) drawer.showModal();
+    lockScroll(true);
+    // Let the dialog paint off-screen before transitioning it in.
     requestAnimationFrame(() => drawer.classList.add("open"));
     drawer.scrollTop = 0;
 
-    const title = content.querySelector("h1")?.textContent ?? "";
+    const title = content.querySelector("h1, h2")?.textContent ?? "";
     document.title = `${title} — Варганов Арсений`;
-    if (push) history.pushState({ slug }, "", `/projects/${slug}/`);
+
+    if (push) {
+      history.pushState({ slug }, "", `/projects/${slug}/`);
+      pushedEntry = true;
+    }
   }
 
-  function close(push: boolean) {
+  function close(useHistory: boolean) {
+    if (!drawer.open) return;
+
+    if (useHistory && pushedEntry) {
+      // popstate runs close(false), which does the actual dismissal.
+      history.back();
+      return;
+    }
+
     drawer.classList.remove("open");
-    backdrop.hidden = true;
-    document.body.classList.remove("drawer-open");
     document.title = homeTitle;
-    if (push) history.pushState({}, "", "/");
-    setTimeout(() => {
-      if (!drawer.classList.contains("open")) drawer.hidden = true;
-    }, 200);
+    pushedEntry = false;
+
+    const finish = () => {
+      if (!drawer.classList.contains("open")) {
+        drawer.close();
+        lockScroll(false);
+      }
+    };
+    drawer.addEventListener("transitionend", finish, { once: true });
+    // Fallback for when the transition is skipped (reduced motion, hidden tab).
+    setTimeout(finish, 300);
+  }
+
+  // iOS ignores `overflow: hidden` on body, so pin the page instead.
+  let savedScroll = 0;
+  function lockScroll(on: boolean) {
+    if (on) {
+      savedScroll = window.scrollY;
+      document.body.style.cssText = `position:fixed;top:${-savedScroll}px;left:0;right:0;`;
+    } else if (document.body.style.position === "fixed") {
+      document.body.style.cssText = "";
+      window.scrollTo(0, savedScroll);
+    }
   }
 
   document.addEventListener("click", (event) => {
@@ -94,30 +150,32 @@ const { Content: Outro } = await render(outro!);
     // Let modified clicks fall through so "open in new tab" keeps working.
     if (mouseEvent.metaKey || mouseEvent.ctrlKey || mouseEvent.shiftKey || mouseEvent.button !== 0) return;
 
-    const card = (event.target as HTMLElement).closest<HTMLElement>("[data-project]");
-    if (card) {
-      event.preventDefault();
-      open(card.dataset.project!, true);
+    if (event.target === drawer || (event.target as HTMLElement).closest("#drawer-close")) {
+      close(true);
       return;
     }
 
-    // Markdown links written as /projects/<slug>/ open in the drawer too.
-    const link = (event.target as HTMLElement).closest<HTMLAnchorElement>(".home-content a");
-    const match = link?.getAttribute("href")?.match(/^\/projects\/([^/]+)\/?$/);
-    if (match) {
-      event.preventDefault();
-      open(match[1], true);
-    }
+    const link = (event.target as HTMLElement).closest<HTMLAnchorElement>("a[href]");
+    if (!link) return;
+
+    const slug =
+      link.dataset.project ??
+      link.getAttribute("href")?.match(/^\/projects\/([^/]+)\/?$/)?.[1];
+    if (!slug) return;
+
+    event.preventDefault();
+    open(slug, true);
   });
 
-  closeButton.addEventListener("click", () => close(true));
-  backdrop.addEventListener("click", () => close(true));
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && drawer.classList.contains("open")) close(true);
+  // Escape fires `cancel`; take it over so the panel animates out.
+  drawer.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    close(true);
   });
 
   window.addEventListener("popstate", (event) => {
     const slug = (event.state as { slug?: string } | null)?.slug;
+    pushedEntry = false;
     if (slug) open(slug, false);
     else close(false);
   });
@@ -126,119 +184,148 @@ const { Content: Outro } = await render(outro!);
 </script>
 
 <style is:global>
-  body.drawer-open { overflow: hidden; }
-
-  #drawer-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.6);
-    z-index: 10;
-  }
-
   #drawer {
     position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0 0 0 auto;
     width: min(760px, 100%);
-    background: var(--bg);
+    max-width: none;
+    height: 100%;
+    max-height: 100%;
+    margin: 0;
+    padding: 0;
+    border: none;
     border-left: 1px solid var(--border);
-    box-shadow: -20px 0 60px rgba(0, 0, 0, 0.5);
+    background: var(--bg);
+    color: var(--text);
     overflow-y: auto;
-    z-index: 11;
+    overscroll-behavior: contain;
     transform: translateX(100%);
     transition: transform 0.22s ease;
   }
-
   #drawer.open { transform: translateX(0); }
 
-  #drawer-content { padding: 3.5rem 2.5rem 4rem; }
+  #drawer::backdrop {
+    background: rgba(0, 0, 0, 0);
+    transition: background 0.22s ease;
+  }
+  #drawer.open::backdrop { background: rgba(0, 0, 0, 0.65); }
+
+  #drawer-content {
+    padding: var(--sp-6) var(--sp-4) var(--sp-8);
+    max-width: 64ch;
+  }
 
   #drawer-close {
-    position: sticky;
-    top: 1rem;
-    float: right;
-    margin-right: 1rem;
-    width: 36px;
-    height: 36px;
-    border: 1px solid var(--border);
+    position: fixed;
+    top: var(--sp-2);
+    right: var(--sp-2);
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--border-strong);
     border-radius: 8px;
     background: var(--bg-elevated);
     color: var(--text);
-    font-size: 1rem;
     cursor: pointer;
     z-index: 1;
   }
   #drawer-close:hover { border-color: var(--accent); color: var(--accent); }
 
   @media (max-width: 640px) {
-    #drawer-content { padding: 3.5rem 1.25rem 3rem; }
+    #drawer { border-left: none; }
+    #drawer-content { padding: var(--sp-6) var(--sp-3) var(--sp-6); }
   }
 
   /* The home page is authored as markdown, so its blocks are styled here. */
   .home-content > :first-child { margin-top: 0; }
 
+  .home-content > p:first-of-type {
+    font-size: var(--s1);
+    line-height: 1.5;
+    max-width: 58ch;
+  }
+
   .home-content h2 {
-    font-size: 1.35rem;
+    font-size: var(--s2);
     border-bottom: 1px solid var(--border);
-    padding-bottom: 0.5rem;
-    margin: 3rem 0 1rem;
+    padding-bottom: var(--sp-1);
+    margin: var(--sp-6) 0 var(--sp-2);
   }
 
   .home-content blockquote {
-    margin: 1.5rem 0;
-    padding: 1.25rem 1.5rem;
+    margin: var(--sp-3) 0;
+    padding: var(--sp-2) var(--sp-3);
     border: 1px solid var(--border);
     border-radius: 10px;
     background: var(--bg-elevated);
   }
-  .home-content blockquote p { margin: 0.35em 0; }
+  .home-content blockquote p { margin: var(--sp-1) 0; }
 
   .home-content hr {
     border: none;
     border-top: 1px solid var(--border);
-    margin: 3rem 0 1.5rem;
+    margin: var(--sp-6) 0 var(--sp-3);
   }
 </style>
 
 <style>
-  .hero { margin-bottom: 1.5rem; }
-  .hero h1 { font-size: 2.25rem; margin: 0; }
+  .hero { margin-bottom: var(--sp-3); }
+  .hero h1 { font-size: var(--s4); margin: 0; }
 
-  section { margin-top: 3rem; }
+  section { margin-top: var(--sp-6); }
   section h2 {
-    font-size: 1.35rem;
+    font-size: var(--s2);
     border-bottom: 1px solid var(--border);
-    padding-bottom: 0.5rem;
-    margin-bottom: 1rem;
+    padding-bottom: var(--sp-1);
+    margin-bottom: var(--sp-3);
   }
 
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+    gap: var(--sp-3);
   }
 
   .card {
-    display: block;
+    display: flex;
+    flex-direction: column;
     background: var(--bg-elevated);
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-strong);
     border-radius: 12px;
-    padding: 1.25rem;
+    overflow: hidden;
     text-decoration: none;
     color: var(--text);
-    transition: border-color 0.15s ease, transform 0.15s ease;
+    transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
   }
   .card:hover {
     border-color: var(--accent);
     transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
   }
-  .card-period {
-    display: block;
-    color: var(--text-dim);
-    font-size: 0.85rem;
-    margin-bottom: 0.35rem;
+
+  .card-cover {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    background: var(--bg-sunken);
   }
-  .card h3 { margin: 0 0 0.5rem; font-size: 1.05rem; }
-  .card p { margin: 0; color: var(--text-dim); font-size: 0.9rem; }
+
+  .card-cover-empty {
+    display: grid;
+    place-items: center;
+    font-size: var(--s3);
+    font-weight: 600;
+    color: var(--border-strong);
+    background: linear-gradient(140deg, #16192099, #0f1116);
+  }
+
+  .card-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+    padding: var(--sp-2);
+  }
+
+  .card-period { color: var(--text-dim); font-size: 0.875rem; }
+  .card-title { font-size: 1.125rem; font-weight: 600; line-height: 1.25; }
+  .card-summary { color: var(--text-dim); font-size: 0.9375rem; line-height: 1.45; }
 </style>

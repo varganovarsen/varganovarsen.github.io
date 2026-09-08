@@ -12,8 +12,15 @@ export async function getStaticPaths() {
 
 const { entry } = Astro.props;
 const { Content } = await render(entry);
+const cover =
+  entry.data.cover ??
+  entry.body?.match(/!\[[^\]]*\]\((\/[^)\s]+\.(?:png|jpe?g|webp|gif))\)/)?.[1];
 ---
-<Base title={`${entry.data.title} — Варганов Арсений`} description={entry.data.summary}>
+<Base
+  title={`${entry.data.title} — Варганов Арсений`}
+  description={entry.data.summary}
+  image={cover}
+>
   <main class="wrap">
     <a class="back" href="/">← Портфолио</a>
 
@@ -33,10 +40,10 @@ const { Content } = await render(entry);
 <style>
   .back {
     display: inline-block;
-    margin-bottom: 2rem;
+    margin-bottom: var(--sp-3);
     color: var(--text-dim);
     text-decoration: none;
-    font-size: 0.9rem;
+    font-size: 0.9375rem;
   }
   .back:hover { color: var(--accent); }
 </style>

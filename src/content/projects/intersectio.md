@@ -2,7 +2,7 @@
 title: "Intersectio"
 period: "2025"
 summary: "Тактическая головоломка в мрачном фэнтези. Делал геймдизайн, нарративный дизайн и техническую реализацию на Godot. Релиз на Itch и в Steam."
-order: 4
+order: 2
 ---
 
 # Контекст
@@ -54,16 +54,11 @@ order: 4
 Позже, уже без моего участия, в игру добавили достижения и бесконечный режим, и она была выпущена в steam:  
 [https://store.steampowered.com/app/4240840/Intersectio/](https://store.steampowered.com/app/4240840/Intersectio/)
 
-# Что бы сделал иначе
-
-_Заполнить._
-
 * * *
 
 # Медиа
 
 https://drive.google.com/file/d/1mcqBc04yyJm4WBbvM3nwPoLJQ6D07wLJ/view?usp=sharing
 
-[![](https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4240840/8e43000e3833858ab0601f7e4c33e92c59a8d9cc/ss_8e43000e3833858ab0601f7e4c33e92c59a8d9cc.1920x1080.jpg?t=1782333723)](https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4240840/8e43000e3833858ab0601f7e4c33e92c59a8d9cc/ss_8e43000e3833858ab0601f7e4c33e92c59a8d9cc.1920x1080.jpg?t=1782333723)
-
-[![](https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4240840/be5b9f2011033156d1fb192ea2e7051b194bfa9b/ss_be5b9f2011033156d1fb192ea2e7051b194bfa9b.1920x1080.jpg?t=1782333723)](https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4240840/be5b9f2011033156d1fb192ea2e7051b194bfa9b/ss_be5b9f2011033156d1fb192ea2e7051b194bfa9b.1920x1080.jpg?t=1782333723)
+![Скриншот из Steam-версии](/projects/intersectio/steam-1.jpg)
+![Диалоговая сцена](/projects/intersectio/steam-2.jpg)

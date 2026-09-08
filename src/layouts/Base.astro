@@ -1,9 +1,20 @@
 ---
+import "@fontsource-variable/inter";
+
 interface Props {
   title: string;
   description?: string;
+  image?: string;
 }
-const { title, description = "Геймдизайнер. Unity, Godot, C#, инструменты и пайплайны." } = Astro.props;
+
+const {
+  title,
+  description = "Геймдизайнер. Unity, Godot, C#, инструменты и пайплайны.",
+  image = "/og.png",
+} = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const ogImage = new URL(image, Astro.site);
 ---
 <!doctype html>
 <html lang="ru">
@@ -11,8 +22,20 @@ const { title, description = "Геймдизайнер. Unity, Godot, C#, инс
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%F0%9F%8E%AE%3C%2Ftext%3E%3C%2Fsvg%3E" />
-    <meta name="description" content={description} />
     <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Варганов Арсений — портфолио" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
   </head>
   <body>
     <slot />
@@ -26,8 +49,9 @@ const { title, description = "Геймдизайнер. Unity, Godot, C#, инс
 </html>
 
 <script>
-  // Lives here, not in Media.astro: the drawer on the index page injects the same
-  // markup, so the handler has to be present on every page.
+  // Lives here, not in a component: the drawer on the index page injects the same
+  // markup, so the handlers have to be present on every page.
+
   // maxresdefault.jpg is missing for many videos; fall back to the always-present size.
   document.addEventListener(
     "error",
@@ -47,7 +71,7 @@ const { title, description = "Геймдизайнер. Unity, Godot, C#, инс
   document.addEventListener("click", (event) => {
     const thumb = (event.target as HTMLElement).closest<HTMLElement>(".media-thumb");
     if (thumb) {
-      stage.replaceChildren(buildFullSize(thumb.dataset));
+      stage.replaceChildren(buildFullSize(thumb));
       caption.textContent =
         thumb.closest(".media-item")?.querySelector("figcaption")?.textContent ?? "";
       lightbox.showModal();
@@ -60,7 +84,9 @@ const { title, description = "Геймдизайнер. Unity, Godot, C#, инс
     }
   });
 
-  function buildFullSize({ type, src, id }: DOMStringMap) {
+  function buildFullSize(thumb: HTMLElement) {
+    const { type, src, id } = thumb.dataset;
+
     if (type === "youtube") {
       const iframe = document.createElement("iframe");
       iframe.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1`;
@@ -81,20 +107,66 @@ const { title, description = "Геймдизайнер. Unity, Godot, C#, инс
 
     const img = document.createElement("img");
     img.src = src!;
+    img.alt = thumb.querySelector("img")?.alt ?? "";
     return img;
   }
 
   lightbox.addEventListener("close", () => stage.replaceChildren());
+
+  // Video tiles stay paused until seen, so a page of clips costs nothing up front.
+  const motionOk = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (motionOk && "IntersectionObserver" in window) {
+    const watcher = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const video = entry.target as HTMLVideoElement;
+          if (entry.isIntersecting) video.play().catch(() => {});
+          else video.pause();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+
+    const observe = () =>
+      document
+        .querySelectorAll<HTMLVideoElement>(".media-thumb video:not([data-watched])")
+        .forEach((video) => {
+          video.dataset.watched = "";
+          watcher.observe(video);
+        });
+
+    observe();
+    // The drawer injects more tiles after load.
+    document.addEventListener("drawer:content", observe);
+  }
 </script>
 
 <style is:global>
   :root {
     --bg: #0d0e12;
-    --bg-elevated: #15171d;
-    --border: #262932;
+    --bg-elevated: #191c24;
+    --bg-sunken: #0a0b0e;
+    --border: #2f333d;
+    --border-strong: #5c606d;
     --text: #e7e7ea;
     --text-dim: #9a9ba5;
     --accent: #7dd3a8;
+
+    /* 1.25 type scale */
+    --s0: 1rem;
+    --s1: 1.25rem;
+    --s2: 1.5625rem;
+    --s3: 1.953rem;
+    --s4: 2.441rem;
+
+    /* spacing rhythm */
+    --sp-1: 0.5rem;
+    --sp-2: 1rem;
+    --sp-3: 1.5rem;
+    --sp-4: 2rem;
+    --sp-6: 3rem;
+    --sp-8: 4rem;
+
     color-scheme: dark;
   }
 
@@ -108,21 +180,33 @@ const { title, description = "Геймдизайнер. Unity, Godot, C#, инс
   }
 
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Arial, sans-serif;
+    font-family: "Inter Variable", "Segoe UI", system-ui, sans-serif;
     line-height: 1.6;
   }
+
+  button { font: inherit; }
 
   a { color: var(--accent); }
 
   img { max-width: 100%; display: block; }
 
-  .wrap {
-    max-width: 860px;
-    margin: 0 auto;
-    padding: 3rem 1.5rem 5rem;
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 
-  h1, h2, h3 { line-height: 1.25; letter-spacing: -0.01em; }
+  .wrap {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: var(--sp-6) var(--sp-3) var(--sp-8);
+  }
+
+  h1, h2, h3 {
+    line-height: 1.2;
+    font-weight: 600;
+  }
+  h1, h2 { letter-spacing: -0.015em; }
 
   code {
     background: var(--bg-elevated);
@@ -133,35 +217,33 @@ const { title, description = "Геймдизайнер. Unity, Godot, C#, инс
 
   /* --- Project body: rendered both on its own page and inside the index drawer --- */
 
-  .project-head { margin-bottom: 2.5rem; }
-  .project-head h1 { margin: 0 0 0.25rem; font-size: 1.8rem; }
+  .project-head { margin-bottom: var(--sp-4); }
+  .project-head h1 { margin: 0 0 var(--sp-1); font-size: var(--s3); }
   .project-head .period { color: var(--text-dim); margin: 0; }
 
-  .content h1 { font-size: 1.4rem; margin-top: 2.5rem; }
-  .content h2 { font-size: 1.2rem; margin-top: 2rem; }
-  .content img {
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    margin: 1.5rem 0;
-    max-height: 460px;
-    width: auto;
-    object-fit: contain;
-  }
+  .content { max-width: 68ch; }
+  .content h2 { font-size: var(--s2); margin-top: var(--sp-6); }
+  .content h3 { font-size: var(--s1); margin-top: var(--sp-4); }
   .content ul { padding-left: 1.3em; }
-  .content li { margin: 0.35em 0; }
+  .content li { margin: var(--sp-1) 0; }
   .content hr {
     border: none;
     border-top: 1px solid var(--border);
-    margin: 2.5rem 0;
+    margin: var(--sp-6) 0;
+  }
+  .content img {
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    margin: var(--sp-3) 0;
   }
 
-  .media-section h2 { font-size: 1.2rem; margin-top: 2.5rem; }
+  /* --- Media tiles --- */
 
   .media {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
-    gap: 1.25rem;
-    margin-top: 1rem;
+    gap: var(--sp-3);
+    margin: var(--sp-3) 0;
   }
 
   .media-item { margin: 0; }
@@ -170,87 +252,107 @@ const { title, description = "Геймдизайнер. Unity, Godot, C#, инс
     display: block;
     position: relative;
     width: 100%;
-    aspect-ratio: 16 / 9;
+    aspect-ratio: 4 / 3;
     padding: 0;
     overflow: hidden;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-strong);
     border-radius: 10px;
-    background: #000;
+    background: var(--bg-sunken);
     cursor: zoom-in;
     transition: border-color 0.15s ease;
   }
   .media-thumb:hover { border-color: var(--accent); }
+  .media-thumb[data-type="video"],
+  .media-thumb[data-type="youtube"] {
+    aspect-ratio: 16 / 9;
+    cursor: pointer;
+  }
 
   .media-thumb img,
   .media-thumb video {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    /* Screenshots are often square or portrait — never crop them. */
+    object-fit: contain;
     transition: transform 0.25s ease;
   }
+  .media-thumb[data-type="youtube"] img { object-fit: cover; }
   .media-thumb:hover img,
-  .media-thumb:hover video { transform: scale(1.03); }
+  .media-thumb:hover video { transform: scale(1.02); }
 
   .media-badge {
     position: absolute;
     inset: 0;
+    margin: auto;
+    width: 56px;
+    height: 56px;
     display: grid;
     place-items: center;
-    font-size: 1.5rem;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(4px);
     color: #fff;
-    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+    font-size: 1.25rem;
     pointer-events: none;
   }
 
   .media figcaption {
-    margin-top: 0.6rem;
+    margin-top: var(--sp-1);
     color: var(--text-dim);
-    font-size: 0.85rem;
+    font-size: 0.875rem;
     line-height: 1.4;
   }
 
+  /* --- Steam --- */
+
   .steam-embeds {
     display: grid;
-    gap: 1rem;
-    margin: 1.5rem 0;
+    gap: var(--sp-2);
+    margin: var(--sp-3) 0;
   }
 
   .steam-card {
     display: flex;
-    align-items: center;
-    gap: 1.25rem;
-    padding: 1rem;
-    border: 1px solid var(--border);
+    align-items: stretch;
+    gap: var(--sp-3);
+    padding: var(--sp-2);
+    border: 1px solid var(--border-strong);
     border-radius: 12px;
     background: var(--bg-elevated);
     color: var(--text);
     text-decoration: none;
-    transition: border-color 0.15s ease, transform 0.15s ease;
+    transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
   }
   .steam-card:hover {
     border-color: var(--accent);
     transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
   }
 
   .steam-card img {
     width: 230px;
+    aspect-ratio: 460 / 215;
     flex-shrink: 0;
     border-radius: 8px;
+    object-fit: cover;
   }
 
   .steam-body {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    justify-content: center;
+    gap: var(--sp-1);
     min-width: 0;
   }
   .steam-title { font-weight: 600; }
-  .steam-meta { color: var(--text-dim); font-size: 0.85rem; }
+  .steam-meta { color: var(--text-dim); font-size: 0.875rem; }
 
   @media (max-width: 560px) {
-    .steam-card { flex-direction: column; align-items: flex-start; }
+    .steam-card { flex-direction: column; }
     .steam-card img { width: 100%; }
   }
+
+  /* --- Lightbox --- */
 
   #lightbox {
     width: min(1200px, 92vw);
@@ -269,7 +371,7 @@ const { title, description = "Геймдизайнер. Unity, Godot, C#, инс
     display: block;
     width: auto;
     max-width: 100%;
-    max-height: 92vh;
+    max-height: 88vh;
     margin-inline: auto;
     border-radius: 12px;
   }
@@ -282,7 +384,7 @@ const { title, description = "Геймдизайнер. Unity, Godot, C#, инс
   }
 
   #lightbox-caption {
-    margin-top: 0.75rem;
+    margin-top: var(--sp-1);
     text-align: center;
     color: var(--text-dim);
     font-size: 0.9rem;
@@ -291,15 +393,24 @@ const { title, description = "Геймдизайнер. Unity, Godot, C#, инс
 
   #lightbox-close {
     position: fixed;
-    top: 1rem;
-    right: 1rem;
-    width: 36px;
-    height: 36px;
-    border: 1px solid var(--border);
+    top: var(--sp-2);
+    right: var(--sp-2);
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--border-strong);
     border-radius: 8px;
     background: var(--bg-elevated);
     color: var(--text);
     cursor: pointer;
   }
   #lightbox-close:hover { border-color: var(--accent); color: var(--accent); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 </style>

@@ -5,6 +5,7 @@ summary: >-
   Разработан engine-agnostic формат игровых данных и MVP веб-редактора уровней
   для автоматизации создания и проверки уровней в тайм-менеджмент играх.
 order: 1
+cover: /projects/gameops-platform/cover.jpg
 ---
 # Контекст
 

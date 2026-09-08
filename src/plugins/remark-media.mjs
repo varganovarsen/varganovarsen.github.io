@@ -2,6 +2,7 @@
 //   ![caption](/path/clip.mp4)      -> looping muted video
 //   ![caption](/path/shot.png)      -> image tile
 //   https://youtu.be/<id>           -> YouTube tile, iframe loaded on click
+//   https://store.steampowered.com/app/<id>/ -> Steam card
 // Several of them in one paragraph (no blank line between) render as a row.
 // Markup matches what Base.astro styles and what its lightbox script expects.
 
@@ -9,8 +10,15 @@ const VIDEO = /\.(mp4|webm|mov|m4v)$/i;
 const YOUTUBE = /^https?:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{6,})/;
 const STEAM = /^https?:\/\/store\.steampowered\.com\/app\/(\d+)/;
 
+const TYPE_LABEL = { image: "Скриншот", video: "Видео", youtube: "Видео на YouTube" };
+
 function escapeAttr(value = "") {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function textOf(node) {
@@ -18,27 +26,7 @@ function textOf(node) {
   return (node.children ?? []).map(textOf).join("");
 }
 
-function asMedia(node) {
-  // A bare image, or an image wrapped in a link to itself (Notion export style).
-  if (node.type === "link" && node.children?.length === 1 && node.children[0].type === "image") {
-    node = node.children[0];
-  }
-
-  if (node.type === "image") {
-    const caption = node.alt || node.title || "";
-    return VIDEO.test(node.url)
-      ? { type: "video", src: node.url, caption }
-      : { type: "image", src: node.url, caption };
-  }
-
-  // A link, or a bare URL typed as plain text — the WYSIWYG editor produces both.
-  const url = node.type === "link" ? node.url : node.type === "text" ? node.value.trim() : null;
-  if (!url) return null;
-
-  // Link text that is just the URL again carries no caption.
-  const label = node.type === "link" ? textOf(node).trim() : "";
-  const caption = label === url ? "" : label;
-
+function fromUrl(url, caption) {
   if (VIDEO.test(url)) return { type: "video", src: url, caption };
 
   const youtubeId = url.match(YOUTUBE)?.[1];
@@ -50,34 +38,52 @@ function asMedia(node) {
   return null;
 }
 
-function steamCard(item) {
-  return (
-    `<a class="steam-card" href="${escapeAttr(item.url)}" rel="noopener">` +
-    `<img src="https://cdn.cloudflare.steamstatic.com/steam/apps/${escapeAttr(item.id)}/header.jpg"` +
-    ` alt="${escapeAttr(item.caption)}" loading="lazy">` +
-    `<span class="steam-body">` +
-    `<span class="steam-title">${escapeAttr(item.caption || "Страница игры")}</span>` +
-    `<span class="steam-meta">Открыть в Steam</span>` +
-    `</span></a>`
-  );
+function asMedia(node) {
+  if (node.type === "image") {
+    const caption = node.alt || node.title || "";
+    return fromUrl(node.url, caption) ?? { type: "image", src: node.url, caption };
+  }
+
+  if (node.type === "link") {
+    // An image wrapped in a link to itself (Notion export style) is just the image.
+    // A link pointing somewhere else keeps its target, so leave the paragraph alone.
+    if (node.children?.length === 1 && node.children[0].type === "image") {
+      const image = node.children[0];
+      return image.url === node.url ? asMedia(image) : null;
+    }
+
+    // Link text that repeats the URL carries no caption.
+    const label = textOf(node).trim();
+    return fromUrl(node.url, label === node.url ? "" : label);
+  }
+
+  // A bare URL typed as plain text — the WYSIWYG editor produces these.
+  if (node.type === "text") {
+    const value = node.value.trim();
+    // Anything with whitespace is prose, or several URLs we would silently drop.
+    if (!value || /\s/.test(value)) return null;
+    return fromUrl(value, "");
+  }
+
+  return null;
 }
 
 function tile(item) {
-  const caption = item.caption
-    ? `<figcaption>${escapeAttr(item.caption)}</figcaption>`
-    : "";
+  const caption = item.caption ? `<figcaption>${escapeAttr(item.caption)}</figcaption>` : "";
   const badge = item.type === "image" ? "" : `<span class="media-badge">▶</span>`;
+  const label = item.caption || TYPE_LABEL[item.type];
 
   let inner;
   if (item.type === "video") {
-    inner = `<video src="${escapeAttr(item.src)}" autoplay muted loop playsinline preload="metadata"></video>`;
+    // Playback starts when the tile scrolls into view (see Base.astro).
+    inner = `<video src="${escapeAttr(item.src)}" muted loop playsinline preload="none"></video>`;
   } else if (item.type === "youtube") {
     inner =
       `<img src="https://i.ytimg.com/vi/${escapeAttr(item.id)}/maxresdefault.jpg"` +
       ` data-fallback="https://i.ytimg.com/vi/${escapeAttr(item.id)}/hqdefault.jpg"` +
-      ` alt="${escapeAttr(item.caption)}" loading="lazy">`;
+      ` alt="${escapeAttr(label)}" width="1280" height="720" loading="lazy">`;
   } else {
-    inner = `<img src="${escapeAttr(item.src)}" alt="${escapeAttr(item.caption)}" loading="lazy">`;
+    inner = `<img src="${escapeAttr(item.src)}" alt="${escapeAttr(label)}" loading="lazy">`;
   }
 
   const data =
@@ -87,8 +93,20 @@ function tile(item) {
 
   return (
     `<figure class="media-item">` +
-    `<button class="media-thumb" type="button" ${data} aria-label="${escapeAttr(item.caption || "Открыть")}">` +
+    `<button class="media-thumb" type="button" ${data} aria-label="${escapeAttr(label)}">` +
     `${inner}${badge}</button>${caption}</figure>`
+  );
+}
+
+function steamCard(item) {
+  return (
+    `<a class="steam-card" href="${escapeAttr(item.url)}" target="_blank" rel="noopener">` +
+    `<img src="https://cdn.cloudflare.steamstatic.com/steam/apps/${escapeAttr(item.id)}/header.jpg"` +
+    ` alt="" width="460" height="215" loading="lazy">` +
+    `<span class="steam-body">` +
+    `<span class="steam-title">${escapeAttr(item.caption || "Страница игры")}</span>` +
+    `<span class="steam-meta">Открыть в Steam</span>` +
+    `</span></a>`
   );
 }
 
