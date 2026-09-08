@@ -3,6 +3,7 @@ title: "Intersectio"
 period: "2025"
 summary: "Тактическая головоломка в мрачном фэнтези. Делал геймдизайн, нарративный дизайн и техническую реализацию на Godot. Релиз на Itch и в Steam."
 order: 2
+cover: /projects/intersectio/cover.jpg
 ---
 
 # Контекст

@@ -10,11 +10,11 @@ interface Props {
 const {
   title,
   description = "Геймдизайнер. Unity, Godot, C#, инструменты и пайплайны.",
-  image = "/og.png",
+  image,
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site);
-const ogImage = new URL(image, Astro.site);
+const ogImage = new URL(image ?? "/og.png", Astro.site);
 ---
 <!doctype html>
 <html lang="ru">
@@ -172,6 +172,11 @@ const ogImage = new URL(image, Astro.site);
 
   * { box-sizing: border-box; }
 
+  html {
+    /* Keeps the page from shifting when the drawer locks scrolling. */
+    scrollbar-gutter: stable;
+  }
+
   html, body {
     margin: 0;
     padding: 0;
@@ -221,7 +226,17 @@ const ogImage = new URL(image, Astro.site);
   .project-head h1 { margin: 0 0 var(--sp-1); font-size: var(--s3); }
   .project-head .period { color: var(--text-dim); margin: 0; }
 
-  .content { max-width: 68ch; }
+  /* Prose keeps a readable measure; galleries use the full column. */
+  .content > p,
+  .content > ul,
+  .content > ol,
+  .content > blockquote,
+  .content > h2,
+  .content > h3,
+  .content > h4 {
+    max-width: 68ch;
+  }
+
   .content h2 { font-size: var(--s2); margin-top: var(--sp-6); }
   .content h3 { font-size: var(--s1); margin-top: var(--sp-4); }
   .content ul { padding-left: 1.3em; }
@@ -252,7 +267,8 @@ const ogImage = new URL(image, Astro.site);
     display: block;
     position: relative;
     width: 100%;
-    aspect-ratio: 4 / 3;
+    /* One ratio for every tile type, so rows keep a straight bottom edge. */
+    aspect-ratio: 16 / 9;
     padding: 0;
     overflow: hidden;
     border: 1px solid var(--border-strong);
@@ -263,10 +279,7 @@ const ogImage = new URL(image, Astro.site);
   }
   .media-thumb:hover { border-color: var(--accent); }
   .media-thumb[data-type="video"],
-  .media-thumb[data-type="youtube"] {
-    aspect-ratio: 16 / 9;
-    cursor: pointer;
-  }
+  .media-thumb[data-type="youtube"] { cursor: pointer; }
 
   .media-thumb img,
   .media-thumb video {

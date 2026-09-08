@@ -23,7 +23,7 @@ const description = intro!.body?.split("\n\n")[0]?.replace(/\s+/g, " ").trim().s
       <h1>{intro!.data.title}</h1>
     </header>
 
-    <div class="content home-content">
+    <div class="content home-content home-intro">
       <Intro />
     </div>
 
@@ -61,7 +61,6 @@ const description = intro!.body?.split("\n\n")[0]?.replace(/\s+/g, " ").trim().s
 <script>
   const drawer = document.getElementById("drawer") as HTMLDialogElement;
   const content = document.getElementById("drawer-content")!;
-  const closeButton = document.getElementById("drawer-close")!;
   const homeTitle = document.title;
   const cache = new Map<string, string>();
 
@@ -137,6 +136,9 @@ const description = intro!.body?.split("\n\n")[0]?.replace(/\s+/g, " ").trim().s
   let savedScroll = 0;
   function lockScroll(on: boolean) {
     if (on) {
+      // Opening another project from inside the drawer must not overwrite the
+      // position we have to return to.
+      if (document.body.style.position === "fixed") return;
       savedScroll = window.scrollY;
       document.body.style.cssText = `position:fixed;top:${-savedScroll}px;left:0;right:0;`;
     } else if (document.body.style.position === "fixed") {
@@ -175,7 +177,8 @@ const description = intro!.body?.split("\n\n")[0]?.replace(/\s+/g, " ").trim().s
 
   window.addEventListener("popstate", (event) => {
     const slug = (event.state as { slug?: string } | null)?.slug;
-    pushedEntry = false;
+    // A restored project entry is a real history entry, so closing can still go back.
+    pushedEntry = Boolean(slug);
     if (slug) open(slug, false);
     else close(false);
   });
@@ -241,14 +244,35 @@ const description = intro!.body?.split("\n\n")[0]?.replace(/\s+/g, " ").trim().s
   .home-content > p:first-of-type {
     font-size: var(--s1);
     line-height: 1.5;
-    max-width: 58ch;
   }
 
   .home-content h2 {
     font-size: var(--s2);
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid #3a4a42;
     padding-bottom: var(--sp-1);
-    margin: var(--sp-6) 0 var(--sp-2);
+    margin: var(--sp-6) 0 var(--sp-3);
+  }
+
+  /* The intro pairs the pitch with the contact card instead of leaving the right
+     half of the page empty. */
+  .home-intro {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(300px, 1fr);
+    column-gap: var(--sp-6);
+    row-gap: var(--sp-3);
+    align-items: start;
+  }
+  .home-intro > * { grid-column: 1; max-width: 62ch; }
+  .home-intro > blockquote {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    margin: 0;
+    align-self: start;
+  }
+
+  @media (max-width: 860px) {
+    .home-intro { grid-template-columns: 1fr; }
+    .home-intro > blockquote { grid-column: 1; grid-row: auto; }
   }
 
   .home-content blockquote {
@@ -268,13 +292,13 @@ const description = intro!.body?.split("\n\n")[0]?.replace(/\s+/g, " ").trim().s
 </style>
 
 <style>
-  .hero { margin-bottom: var(--sp-3); }
+  .hero { margin-bottom: var(--sp-4); }
   .hero h1 { font-size: var(--s4); margin: 0; }
 
   section { margin-top: var(--sp-6); }
   section h2 {
     font-size: var(--s2);
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid #3a4a42;
     padding-bottom: var(--sp-1);
     margin-bottom: var(--sp-3);
   }
@@ -309,13 +333,15 @@ const description = intro!.body?.split("\n\n")[0]?.replace(/\s+/g, " ").trim().s
     background: var(--bg-sunken);
   }
 
+  /* Projects without artwork get a deliberate typographic plate, not a grey box. */
   .card-cover-empty {
     display: grid;
     place-items: center;
-    font-size: var(--s3);
+    font-size: var(--s4);
     font-weight: 600;
-    color: var(--border-strong);
-    background: linear-gradient(140deg, #16192099, #0f1116);
+    letter-spacing: 0.08em;
+    color: #2b303b;
+    background: linear-gradient(140deg, #191c24, #0f1116);
   }
 
   .card-body {
@@ -325,7 +351,7 @@ const description = intro!.body?.split("\n\n")[0]?.replace(/\s+/g, " ").trim().s
     padding: var(--sp-2);
   }
 
-  .card-period { color: var(--text-dim); font-size: 0.875rem; }
+  .card-period { color: var(--accent); opacity: 0.75; font-size: 0.875rem; }
   .card-title { font-size: 1.125rem; font-weight: 600; line-height: 1.25; }
   .card-summary { color: var(--text-dim); font-size: 0.9375rem; line-height: 1.45; }
 </style>

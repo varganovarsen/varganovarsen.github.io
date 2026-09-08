@@ -12,14 +12,13 @@ export async function getStaticPaths() {
 
 const { entry } = Astro.props;
 const { Content } = await render(entry);
-const cover =
-  entry.data.cover ??
-  entry.body?.match(/!\[[^\]]*\]\((\/[^)\s]+\.(?:png|jpe?g|webp|gif))\)/)?.[1];
+// Only an explicit cover is 16:9; a screenshot pulled from the text would be
+// letterboxed by social cards, so those fall back to the site image.
 ---
 <Base
   title={`${entry.data.title} — Варганов Арсений`}
   description={entry.data.summary}
-  image={cover}
+  image={entry.data.cover}
 >
   <main class="wrap">
     <a class="back" href="/">← Портфолио</a>
@@ -38,6 +37,9 @@ const cover =
 </Base>
 
 <style>
+  /* A single article does not need the full grid width. */
+  .wrap { max-width: 820px; }
+
   .back {
     display: inline-block;
     margin-bottom: var(--sp-3);

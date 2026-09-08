@@ -5,7 +5,7 @@ summary: >-
   Музейный интерактивный проект на Unity для Quest 2, реализованный полностью в
   VR. Делал гейм-дизайн, всю техническую реализацию, представлял на выставках.
 order: 4
-cover: /projects/bunker-tributsa-vr/image.png
+cover: /projects/bunker-tributsa-vr/cover.jpg
 ---
 # Контекст
 
@@ -40,3 +40,10 @@ cover: /projects/bunker-tributsa-vr/image.png
 Основная проблема проекта — недоработанная навигация. Пользователи иногда теряли нить повествования и не могли найти цель. Сейчас добавил бы больше сигналов и направляющих по золотому пути.
 
 ---
+
+# Медиа
+
+![Интерактивный стол с картой боевых действий](/projects/bunker-tributsa-vr/table-loop.mp4)
+
+![Пространство бункера](/projects/bunker-tributsa-vr/image.png)
+![Интерактивные объекты](/projects/bunker-tributsa-vr/image-1.png)

@@ -6,11 +6,25 @@
 // Several of them in one paragraph (no blank line between) render as a row.
 // Markup matches what Base.astro styles and what its lightbox script expects.
 
+import fs from "node:fs";
+import path from "node:path";
+
 const VIDEO = /\.(mp4|webm|mov|m4v)$/i;
 const YOUTUBE = /^https?:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{6,})/;
 const STEAM = /^https?:\/\/store\.steampowered\.com\/app\/(\d+)/;
 
 const TYPE_LABEL = { image: "Скриншот", video: "Видео", youtube: "Видео на YouTube" };
+
+// A video tile shows its poster before playback starts. Pick up an image sitting
+// next to the file, e.g. clip.mp4 -> clip.jpg.
+function findPoster(src) {
+  if (!src.startsWith("/")) return null;
+  for (const ext of [".jpg", ".jpeg", ".png", ".webp"]) {
+    const candidate = src.replace(VIDEO, ext);
+    if (fs.existsSync(path.join("public", candidate))) return candidate;
+  }
+  return null;
+}
 
 function escapeAttr(value = "") {
   return value
@@ -75,8 +89,12 @@ function tile(item) {
 
   let inner;
   if (item.type === "video") {
-    // Playback starts when the tile scrolls into view (see Base.astro).
-    inner = `<video src="${escapeAttr(item.src)}" muted loop playsinline preload="none"></video>`;
+    // Playback starts when the tile scrolls into view (see Base.astro); the poster
+    // keeps the tile from being a black rectangle until then.
+    const poster = findPoster(item.src);
+    inner =
+      `<video src="${escapeAttr(item.src)}"${poster ? ` poster="${escapeAttr(poster)}"` : ""}` +
+      ` muted loop playsinline preload="metadata"></video>`;
   } else if (item.type === "youtube") {
     inner =
       `<img src="https://i.ytimg.com/vi/${escapeAttr(item.id)}/maxresdefault.jpg"` +
