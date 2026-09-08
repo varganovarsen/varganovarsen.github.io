@@ -153,7 +153,6 @@ const ogImage = new URL(image ?? "/og.png", Astro.site);
     --accent: #7dd3a8;
 
     /* 1.25 type scale */
-    --s0: 1rem;
     --s1: 1.25rem;
     --s2: 1.5625rem;
     --s3: 1.953rem;
@@ -278,6 +277,8 @@ const ogImage = new URL(image ?? "/og.png", Astro.site);
     transition: border-color 0.15s ease;
   }
   .media-thumb:hover { border-color: var(--accent); }
+  /* Screenshots are usually square or portrait; a taller box wastes less of them. */
+  .media-thumb[data-type="image"] { aspect-ratio: 4 / 3; }
   .media-thumb[data-type="video"],
   .media-thumb[data-type="youtube"] { cursor: pointer; }
 

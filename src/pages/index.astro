@@ -35,7 +35,7 @@ const description = intro!.body?.split("\n\n")[0]?.replace(/\s+/g, " ").trim().s
             {cover ? (
               <img class="card-cover" src={cover} alt="" loading="lazy" />
             ) : (
-              <span class="card-cover card-cover-empty">{entry.data.period}</span>
+              <span class="card-cover card-cover-empty" aria-hidden="true">{entry.data.period}</span>
             )}
             <span class="card-body">
               <span class="card-period">{entry.data.period}</span>
@@ -268,6 +268,13 @@ const description = intro!.body?.split("\n\n")[0]?.replace(/\s+/g, " ").trim().s
     grid-row: 1 / span 2;
     margin: 0;
     align-self: start;
+  }
+  /* Everything from the first section heading on spans the full width, so its
+     rule matches the sections further down the page. */
+  .home-intro > h2,
+  .home-intro > h2 ~ * {
+    grid-column: 1 / -1;
+    max-width: none;
   }
 
   @media (max-width: 860px) {

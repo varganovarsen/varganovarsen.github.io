@@ -23,7 +23,9 @@ function findPoster(src) {
     const candidate = src.replace(VIDEO, ext);
     if (fs.existsSync(path.join("public", candidate))) return candidate;
   }
-  return null;
+  // Otherwise fall back to the project's cover image.
+  const cover = `${path.posix.dirname(src)}/cover.jpg`;
+  return fs.existsSync(path.join("public", cover)) ? cover : null;
 }
 
 function escapeAttr(value = "") {

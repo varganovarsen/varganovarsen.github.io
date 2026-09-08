@@ -45,5 +45,5 @@ cover: /projects/bunker-tributsa-vr/cover.jpg
 
 ![Интерактивный стол с картой боевых действий](/projects/bunker-tributsa-vr/table-loop.mp4)
 
-![Пространство бункера](/projects/bunker-tributsa-vr/image.png)
-![Интерактивные объекты](/projects/bunker-tributsa-vr/image-1.png)
+![Пространство бункера](/projects/bunker-tributsa-vr/image.jpg)
+![Интерактивные объекты](/projects/bunker-tributsa-vr/image-1.jpg)

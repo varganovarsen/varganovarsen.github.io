@@ -37,6 +37,6 @@ cover: /projects/argonauts-agency/cover.jpg
 
 # Медиа
 
-![Схема уровня](/projects/argonauts-agency/screenshot_2026-09-07_220451.png)
+![Схема уровня](/projects/argonauts-agency/screenshot_2026-09-07_220451.jpg)
 
-![Скриншот готового уровня](/projects/argonauts-agency/screenshot_2026-09-07_221246.png)
+![Скриншот готового уровня](/projects/argonauts-agency/screenshot_2026-09-07_221246.jpg)
