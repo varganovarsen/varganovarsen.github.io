@@ -339,23 +339,23 @@ const ogImage = new URL(image ?? "/og.png", Astro.site);
 
   /* Valve's widget carries the cover, the price and the store button; the card
      around it adds the one thing the store cannot know — the role on the game. */
-  /* Widget on the left, the role beside it — the store's card and ours read as
-     one row instead of a stack. */
+  /* Two panels side by side: Valve's widget on the left, ours on the right.
+     Kept apart, so the store's card is plainly the store's. */
   .release {
     display: grid;
     grid-template-columns: minmax(0, 1.4fr) minmax(200px, 1fr);
-    align-items: center;
-    border: 1px solid var(--border-strong);
-    border-radius: 12px;
-    background: var(--bg-elevated);
-    overflow: hidden;
+    gap: var(--sp-3);
+    align-items: stretch;
   }
 
   /* The widget document paints a white canvas around its card and keeps the
      browser's 8px body margin. Cropping to the card itself hides both. */
   .steam-frame {
-    height: 168px;
+    /* 167px of card plus the 1px borders this box now draws. */
+    height: 170px;
     overflow: hidden;
+    border: 1px solid var(--border-strong);
+    border-radius: 12px;
   }
   /* Pulled out of the box by its own margins rather than positioned: if this
      rule ever fails to load, the frame stays where it is in the flow instead
@@ -369,9 +369,14 @@ const ogImage = new URL(image ?? "/og.png", Astro.site);
   }
 
   .release-role {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     margin: 0;
     padding: var(--sp-2) var(--sp-3);
-    border-left: 1px solid var(--border);
+    border: 1px solid var(--border-strong);
+    border-radius: 12px;
+    background: var(--bg-elevated);
     font-size: 0.9375rem;
     line-height: 1.5;
   }
@@ -386,11 +391,7 @@ const ogImage = new URL(image ?? "/og.png", Astro.site);
 
   @media (max-width: 720px) {
     .release { grid-template-columns: 1fr; }
-    .release-role {
-      border-left: none;
-      border-top: 1px solid var(--border);
-      padding: var(--sp-2);
-    }
+    .release-role { padding: var(--sp-2); }
   }
 
   /* --- Lightbox --- */
