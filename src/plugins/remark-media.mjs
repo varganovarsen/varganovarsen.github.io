@@ -123,9 +123,13 @@ function tile(item) {
 // the widget also brings the price and a working store button.
 function steamCard(item) {
   const title = escapeAttr(item.caption || "Страница игры");
+  // The widget's own card is 167px tall inside a page that paints a white
+  // canvas around it, so the frame is cropped to the card (see Base.astro).
   return (
-    `<iframe class="steam-widget" src="https://store.steampowered.com/widget/${escapeAttr(item.id)}/"` +
-    ` title="${title} в Steam" width="646" height="190" frameborder="0" loading="lazy"></iframe>`
+    `<div class="steam-frame">` +
+    `<iframe class="steam-widget" src="https://store.steampowered.com/widget/${escapeAttr(item.id)}/?l=russian"` +
+    ` title="${title} в Steam" width="646" height="190" frameborder="0" loading="lazy"></iframe>` +
+    `</div>`
   );
 }
 
@@ -203,7 +207,12 @@ export default function remarkMedia() {
               .map((item) => `<div class="release">${steamCard(item)}${role}</div>`)
               .join("")}</div>`
           : "") +
-        (tiles.length ? `<div class="media">${tiles.map(tile).join("")}</div>` : "");
+        // Tiles written in one paragraph share a row: as many columns as there
+        // are tiles, four at most, so a long row does not shrink to stamps.
+        (tiles.length
+          ? `<div class="media" style="--cols:${Math.min(tiles.length, 4)}">` +
+            `${tiles.map(tile).join("")}</div>`
+          : "");
 
       out.push({ type: "html", value: html });
     }

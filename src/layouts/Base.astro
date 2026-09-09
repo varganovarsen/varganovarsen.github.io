@@ -255,9 +255,19 @@ const ogImage = new URL(image ?? "/og.png", Astro.site);
 
   .media {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+    /* --cols comes from how many tiles the paragraph holds (remark-media). */
+    grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr));
     gap: var(--sp-3);
     margin: var(--sp-3) 0;
+  }
+
+  /* Narrow screens drop the fixed count and fit what they can — a lone tile
+     still takes the full width. */
+  @media (max-width: 760px) {
+    .media { grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
+  }
+  @media (max-width: 480px) {
+    .media { grid-template-columns: 1fr; }
   }
 
   .media-item { margin: 0; }
@@ -335,12 +345,20 @@ const ogImage = new URL(image ?? "/og.png", Astro.site);
     overflow: hidden;
   }
 
+  /* The widget document paints a white canvas around its card and keeps the
+     browser's 8px body margin. Cropping to the card itself hides both. */
+  .steam-frame {
+    position: relative;
+    height: 168px;
+    overflow: hidden;
+  }
   .steam-widget {
-    display: block;
-    width: 100%;
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    width: calc(100% + 16px);
     height: 190px;
     border: 0;
-    background: var(--bg-sunken);
   }
 
   .release-role {

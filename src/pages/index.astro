@@ -252,8 +252,11 @@ const description = intro!.body?.split("\n\n")[0]?.replace(/\s+/g, " ").trim().s
     font-size: var(--s2);
     border-bottom: 1px solid #3a4a42;
     padding-bottom: var(--sp-1);
-    margin: var(--sp-6) 0 var(--sp-3);
+    /* Sections need clear air above them: the gap belongs to the heading, not
+       to the block it follows. */
+    margin: var(--sp-8) 0 var(--sp-3);
   }
+  .home-content > h2:first-child { margin-top: 0; }
 
   /* One column: pitch, stack, contacts. */
   .home-intro > * { max-width: 68ch; }
