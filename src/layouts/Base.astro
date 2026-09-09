@@ -201,7 +201,9 @@ const ogImage = new URL(image ?? "/og.png", Astro.site);
   }
 
   .wrap {
-    max-width: 1040px;
+    /* Wide enough for three cards, narrow enough that a paragraph does not sit
+       in the left third of an empty page. */
+    max-width: 920px;
     margin: 0 auto;
     padding: var(--sp-6) var(--sp-3) var(--sp-8);
   }
@@ -337,8 +339,12 @@ const ogImage = new URL(image ?? "/og.png", Astro.site);
 
   /* Valve's widget carries the cover, the price and the store button; the card
      around it adds the one thing the store cannot know — the role on the game. */
+  /* Widget on the left, the role beside it — the store's card and ours read as
+     one row instead of a stack. */
   .release {
-    max-width: 646px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(200px, 1fr);
+    align-items: center;
     border: 1px solid var(--border-strong);
     border-radius: 12px;
     background: var(--bg-elevated);
@@ -364,14 +370,27 @@ const ogImage = new URL(image ?? "/og.png", Astro.site);
 
   .release-role {
     margin: 0;
-    padding: var(--sp-2);
-    border-top: 1px solid var(--border);
+    padding: var(--sp-2) var(--sp-3);
+    border-left: 1px solid var(--border);
     font-size: 0.9375rem;
     line-height: 1.5;
   }
   .release-role > span {
+    display: block;
     color: var(--text-dim);
-    margin-right: 0.35em;
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.15em;
+  }
+
+  @media (max-width: 720px) {
+    .release { grid-template-columns: 1fr; }
+    .release-role {
+      border-left: none;
+      border-top: 1px solid var(--border);
+      padding: var(--sp-2);
+    }
   }
 
   /* --- Lightbox --- */

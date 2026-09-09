@@ -197,7 +197,7 @@ export default function remarkMedia() {
       let role = "";
       const next = tree.children[index + 1];
       if (steam.length && !tiles.length && next?.type === "paragraph" && !mediaOf(next)) {
-        role = `<p class="release-role"><span>Моя роль:</span> ${inlineHtml(next.children)}</p>`;
+        role = `<p class="release-role"><span>Моя роль</span>${inlineHtml(next.children)}</p>`;
         index += 1;
       }
 
