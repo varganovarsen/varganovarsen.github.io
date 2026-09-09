@@ -241,7 +241,9 @@ const description = intro!.body?.split("\n\n")[0]?.replace(/\s+/g, " ").trim().s
   /* The home page is authored as markdown, so its blocks are styled here. */
   .home-content > :first-child { margin-top: 0; }
 
-  .home-content > p:first-of-type {
+  /* The pitch alone is set larger — scoped to the intro, or the first release
+     line would be lifted with it. */
+  .home-intro > p:first-of-type {
     font-size: var(--s1);
     line-height: 1.5;
   }
@@ -253,32 +255,9 @@ const description = intro!.body?.split("\n\n")[0]?.replace(/\s+/g, " ").trim().s
     margin: var(--sp-6) 0 var(--sp-3);
   }
 
-  /* The intro pairs the pitch with the contact card instead of leaving the right
-     half of the page empty. */
-  .home-intro {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(340px, 0.8fr);
-    column-gap: var(--sp-6);
-    row-gap: var(--sp-3);
-    align-items: start;
-  }
-  .home-intro > * { grid-column: 1; max-width: 62ch; }
-  /* The card's border and padding sit above its first line. Nudging the pitch
-     down by the same amount starts both texts on one line. */
-  .home-intro > p:first-of-type { padding-top: 1rem; }
-  /* The card runs the height of the column beside it, so nothing is left
-     hanging under the stack. */
-  .home-intro > blockquote {
-    grid-column: 2;
-    grid-row: 1 / -1;
-    margin: 0;
-  }
-
-  @media (max-width: 860px) {
-    .home-intro { grid-template-columns: 1fr; }
-    .home-intro > p:first-of-type { padding-top: 0; }
-    .home-intro > blockquote { grid-column: 1; grid-row: auto; }
-  }
+  /* One column: pitch, stack, contacts. */
+  .home-intro > * { max-width: 68ch; }
+  .home-intro > blockquote { margin: var(--sp-4) 0 0; }
 
   /* --- Chips (the stack line) --- */
 
@@ -291,6 +270,7 @@ const description = intro!.body?.split("\n\n")[0]?.replace(/\s+/g, " ").trim().s
     list-style: none;
   }
   .chips li {
+    position: relative;
     padding: 0.2rem 0.7rem;
     border: 1px solid var(--border);
     border-radius: 999px;
@@ -300,15 +280,43 @@ const description = intro!.body?.split("\n\n")[0]?.replace(/\s+/g, " ").trim().s
     line-height: 1.45;
   }
 
-  /* --- Releases: a Steam card with our own line underneath --- */
-
-  .home-content .steam-embeds { margin: var(--sp-3) 0 var(--sp-1); }
-  .home-content .steam-embeds + p {
-    max-width: 68ch;
-    margin: 0 0 var(--sp-4);
-    color: var(--text-dim);
+  /* A chip with more to say marks itself and shows the rest on hover or focus. */
+  .chips li[data-tip] {
+    cursor: help;
+    border-color: var(--border-strong);
+    color: var(--text);
   }
-  .home-content .steam-card img { width: 280px; }
+  .chips li[data-tip]::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+    width: max-content;
+    max-width: min(280px, 70vw);
+    padding: 0.5rem 0.625rem;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    background: var(--bg-sunken);
+    color: var(--text);
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    text-align: left;
+    white-space: normal;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.12s ease;
+    pointer-events: none;
+  }
+  .chips li[data-tip]:hover::after,
+  .chips li[data-tip]:focus-visible::after {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .home-content .steam-embeds { margin: var(--sp-3) 0; }
 
   .home-content blockquote {
     margin: var(--sp-3) 0;

@@ -12,4 +12,4 @@ title: "Варганов Арсений Александрович"
 >
 > Билды и джемовые игры: [arsvarg.itch.io](https://arsvarg.itch.io/)
 
-Unity (6 лет, C#) · Godot · Git · Claude Code как основной инструмент кодогенерации · Shader Graph · UI Toolkit · Google Sheets/Docs · Yarn Spinner · Photoshop · Illustrator · After Effects
+Unity (6 лет, C#) — коммерческие проекты с 2020 года · Godot · Git · Claude Code — основной инструмент кодогенерации · Shader Graph · UI Toolkit · Google Sheets/Docs · Yarn Spinner · Photoshop · Illustrator · After Effects

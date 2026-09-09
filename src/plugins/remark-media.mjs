@@ -118,39 +118,96 @@ function tile(item) {
   );
 }
 
+// Valve's own store widget. Guessing the header image URL no longer works —
+// the current one carries a content hash that only the store API knows — and
+// the widget also brings the price and a working store button.
 function steamCard(item) {
+  const title = escapeAttr(item.caption || "Страница игры");
   return (
-    `<a class="steam-card" href="${escapeAttr(item.url)}" target="_blank" rel="noopener">` +
-    `<img src="https://cdn.cloudflare.steamstatic.com/steam/apps/${escapeAttr(item.id)}/header.jpg"` +
-    ` alt="" width="460" height="215" loading="lazy">` +
-    `<span class="steam-body">` +
-    `<span class="steam-title">${escapeAttr(item.caption || "Страница игры")}</span>` +
-    `<span class="steam-meta">Открыть в Steam</span>` +
-    `</span></a>`
+    `<iframe class="steam-widget" src="https://store.steampowered.com/widget/${escapeAttr(item.id)}/"` +
+    ` title="${title} в Steam" width="646" height="190" frameborder="0" loading="lazy"></iframe>`
   );
+}
+
+// Enough of markdown's inline nodes to carry a caption over into HTML.
+function inlineHtml(nodes = []) {
+  return nodes
+    .map((node) => {
+      switch (node.type) {
+        case "text":
+          return escapeAttr(node.value);
+        case "strong":
+          return `<strong>${inlineHtml(node.children)}</strong>`;
+        case "emphasis":
+          return `<em>${inlineHtml(node.children)}</em>`;
+        case "inlineCode":
+          return `<code>${escapeAttr(node.value)}</code>`;
+        case "link": {
+          const external = /^https?:/.test(node.url);
+          return (
+            `<a href="${escapeAttr(node.url)}"` +
+            (external ? ` target="_blank" rel="noopener"` : "") +
+            `>${inlineHtml(node.children)}</a>`
+          );
+        }
+        case "break":
+          return " ";
+        default:
+          return escapeAttr(textOf(node));
+      }
+    })
+    .join("");
+}
+
+function mediaOf(node) {
+  if (node.type !== "paragraph") return null;
+
+  const meaningful = node.children.filter(
+    (child) => !(child.type === "text" && child.value.trim() === "") && child.type !== "break"
+  );
+
+  const items = meaningful.map(asMedia);
+  // Only convert paragraphs that are nothing but media, so prose is untouched.
+  if (items.length === 0 || items.some((item) => item === null)) return null;
+  return items;
 }
 
 export default function remarkMedia() {
   return (tree) => {
-    tree.children = tree.children.map((node) => {
-      if (node.type !== "paragraph") return node;
+    const out = [];
 
-      const meaningful = node.children.filter(
-        (child) => !(child.type === "text" && child.value.trim() === "") && child.type !== "break"
-      );
-
-      const items = meaningful.map(asMedia);
-      // Only convert paragraphs that are nothing but media, so prose is untouched.
-      if (items.length === 0 || items.some((item) => item === null)) return node;
+    for (let index = 0; index < tree.children.length; index += 1) {
+      const node = tree.children[index];
+      const items = mediaOf(node);
+      if (!items) {
+        out.push(node);
+        continue;
+      }
 
       const steam = items.filter((item) => item.type === "steam");
       const tiles = items.filter((item) => item.type !== "steam");
 
+      // A paragraph of prose right under a store link is what the release is to
+      // us — the role on it — so it goes inside the card instead of floating
+      // below it.
+      let role = "";
+      const next = tree.children[index + 1];
+      if (steam.length && !tiles.length && next?.type === "paragraph" && !mediaOf(next)) {
+        role = `<p class="release-role"><span>Моя роль:</span> ${inlineHtml(next.children)}</p>`;
+        index += 1;
+      }
+
       const html =
-        (steam.length ? `<div class="steam-embeds">${steam.map(steamCard).join("")}</div>` : "") +
+        (steam.length
+          ? `<div class="steam-embeds">${steam
+              .map((item) => `<div class="release">${steamCard(item)}${role}</div>`)
+              .join("")}</div>`
+          : "") +
         (tiles.length ? `<div class="media">${tiles.map(tile).join("")}</div>` : "");
 
-      return { type: "html", value: html };
-    });
+      out.push({ type: "html", value: html });
+    }
+
+    tree.children = out;
   };
 }

@@ -10,7 +10,8 @@ function escapeHtml(value) {
   return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 export default function remarkChips() {
@@ -25,7 +26,17 @@ export default function remarkChips() {
         .filter(Boolean);
       if (items.length < MIN_ITEMS) return node;
 
-      const chips = items.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+      // "Unity — с 2020 года, шейдеры, UI Toolkit" puts everything after the
+      // dash into a tooltip, so a chip stays short without losing the detail.
+      const chips = items
+        .map((item) => {
+          const [label, ...rest] = item.split(" — ");
+          const tip = rest.join(" — ").trim();
+          if (!tip) return `<li>${escapeHtml(label)}</li>`;
+          // Focusable, so the tooltip is reachable without a mouse.
+          return `<li tabindex="0" data-tip="${escapeHtml(tip)}">${escapeHtml(label)}</li>`;
+        })
+        .join("");
       return { type: "html", value: `<ul class="chips">${chips}</ul>` };
     });
   };
