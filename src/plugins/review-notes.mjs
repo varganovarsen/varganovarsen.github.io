@@ -70,9 +70,8 @@ function endpoint() {
 // The markdown pipeline and this script are read once, at startup. Watching
 // them makes the dev server restart itself on an edit, instead of quietly
 // serving the old behaviour until someone notices.
-function watchPipeline(addWatchFile, logger) {
-  if (typeof addWatchFile !== "function") return;
-
+function pipelineFiles() {
+  const files = [];
   for (const dir of ["src/plugins", "src/dev"]) {
     let names;
     try {
@@ -81,9 +80,48 @@ function watchPipeline(addWatchFile, logger) {
       continue;
     }
     for (const name of names) {
-      if (/\.(mjs|js|ts)$/.test(name)) addWatchFile(path.resolve(dir, name));
+      if (/\.(mjs|js|ts)$/.test(name)) files.push(path.resolve(dir, name));
     }
   }
+  return files.sort();
+}
+
+// Astro caches rendered markdown in .astro/data-store.json, keyed by the file
+// itself — so changing a remark plugin leaves every page rendered by the old
+// pipeline in place, and the dev server keeps serving it. Dropping the store
+// whenever the pipeline changes is what makes an edit actually show up.
+function dropStaleRenders(files, logger) {
+  const stamp = path.resolve(".astro/pipeline.json");
+  const store = path.resolve(".astro/data-store.json");
+
+  const now = JSON.stringify(
+    files.map((file) => [path.basename(file), fs.statSync(file).mtimeMs])
+  );
+
+  let before = null;
+  try {
+    before = fs.readFileSync(stamp, "utf8");
+  } catch {}
+
+  if (before === now) return;
+
+  try {
+    fs.rmSync(store, { force: true });
+    if (before !== null) logger.info("пайплайн изменился — кеш рендера сброшен");
+  } catch (error) {
+    logger.warn(`не удалось сбросить .astro/data-store.json: ${error.message}`);
+  }
+
+  fs.mkdirSync(path.dirname(stamp), { recursive: true });
+  fs.writeFileSync(stamp, now, "utf8");
+}
+
+function watchPipeline(addWatchFile, logger) {
+  const files = pipelineFiles();
+  dropStaleRenders(files, logger);
+
+  if (typeof addWatchFile !== "function") return;
+  for (const file of files) addWatchFile(file);
   logger.info("правки в src/plugins и src/dev перезапускают дев-сервер");
 }
 
