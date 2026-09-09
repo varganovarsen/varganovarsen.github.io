@@ -6,6 +6,7 @@ import node from '@astrojs/node';
 import remarkMedia from './src/plugins/remark-media.mjs';
 import remarkDemoteHeadings from './src/plugins/remark-demote-headings.mjs';
 import sitemap from '@astrojs/sitemap';
+import reviewNotes from './src/plugins/review-notes.mjs';
 
 // Keystatic's admin routes are server-rendered, so they are loaded only for
 // `npm run cms`. The GitHub Pages build stays fully static.
@@ -15,6 +16,8 @@ export default defineConfig({
   site: 'https://varganovarsen.github.io',
   output: 'static',
   markdown: { remarkPlugins: [remarkDemoteHeadings, remarkMedia] },
-  integrations: cms ? [sitemap(), react(), keystatic()] : [sitemap()],
+  integrations: cms
+    ? [sitemap(), reviewNotes(), react(), keystatic()]
+    : [sitemap(), reviewNotes()],
   adapter: cms ? node({ mode: 'standalone' }) : undefined,
 });
