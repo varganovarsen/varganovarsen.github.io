@@ -239,7 +239,7 @@ const description = intro!.body?.split("\n\n")[0]?.replace(/\s+/g, " ").trim().s
   }
 
   /* The home page is authored as markdown, so its blocks are styled here. */
-  .home-content > :first-child { margin-top: 0; }
+  .home-intro > :first-child { margin-top: 0; }
 
   /* The pitch alone is set larger — scoped to the intro, or the first release
      line would be lifted with it. */
@@ -256,7 +256,6 @@ const description = intro!.body?.split("\n\n")[0]?.replace(/\s+/g, " ").trim().s
        to the block it follows. */
     margin: var(--sp-8) 0 var(--sp-3);
   }
-  .home-content > h2:first-child { margin-top: 0; }
 
   /* One column: pitch, stack, contacts. */
   .home-intro > * { max-width: 68ch; }
