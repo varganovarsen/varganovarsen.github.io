@@ -352,7 +352,9 @@ const description = intro!.body?.split("\n\n")[0]?.replace(/\s+/g, " ").trim().s
 
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+    /* 260 keeps three cards per row inside the 920px page: 3 x 260 plus two
+       gaps fits the 872px of content width. */
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
     gap: var(--sp-3);
   }
 

@@ -337,15 +337,24 @@ const ogImage = new URL(image ?? "/og.png", Astro.site);
     margin: var(--sp-3) 0;
   }
 
-  /* Nothing is cropped or overlaid: the widget's own document is transparent,
-     so painting the iframe itself replaces the white canvas the browser would
-     otherwise show around the card. */
+  /* A transparent embedded document still gets a white canvas from the browser,
+     and the iframe element's own background sits behind it — painting it does
+     not help. So the frame is cut to the card: 8px of page margin on every
+     side goes, and the radius Valve's border had is drawn here instead, which
+     is what kept the corners looking chopped. */
+  .steam-frame {
+    height: 167px;
+    overflow: hidden;
+    border-radius: 6px;
+  }
   .steam-widget {
     display: block;
-    width: 100%;
-    height: 184px;
+    width: calc(100% + 16px);
+    /* Taller than the 183px document, so the widget never grows its own
+       scrollbar. The frame crops the slack. */
+    height: 220px;
+    margin: -8px 0 0 -8px;
     border: 0;
-    background: var(--bg);
   }
 
 

@@ -123,11 +123,12 @@ function tile(item) {
 // the widget also brings the price and a working store button.
 function steamCard(item) {
   const title = escapeAttr(item.caption || "Страница игры");
-  // Nothing is cropped: the widget's document is transparent, so painting the
-  // iframe itself hides the white canvas the browser would otherwise show.
+  // Wrapped so Base.astro can crop the white page around the card.
   return (
+    `<div class="steam-frame">` +
     `<iframe class="steam-widget" src="https://store.steampowered.com/widget/${escapeAttr(item.id)}/?l=russian"` +
-    ` title="${title} в Steam" width="646" height="190" frameborder="0" loading="lazy"></iframe>`
+    ` title="${title} в Steam" width="646" height="190" frameborder="0" loading="lazy"></iframe>` +
+    `</div>`
   );
 }
 
