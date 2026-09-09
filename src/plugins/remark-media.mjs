@@ -123,44 +123,12 @@ function tile(item) {
 // the widget also brings the price and a working store button.
 function steamCard(item) {
   const title = escapeAttr(item.caption || "Страница игры");
-  // The widget's own card is 167px tall inside a page that paints a white
-  // canvas around it, so the frame is cropped to the card (see Base.astro).
+  // Nothing is cropped: the widget's document is transparent, so painting the
+  // iframe itself hides the white canvas the browser would otherwise show.
   return (
-    `<div class="steam-frame">` +
     `<iframe class="steam-widget" src="https://store.steampowered.com/widget/${escapeAttr(item.id)}/?l=russian"` +
-    ` title="${title} в Steam" width="646" height="190" frameborder="0" loading="lazy"></iframe>` +
-    `</div>`
+    ` title="${title} в Steam" width="646" height="190" frameborder="0" loading="lazy"></iframe>`
   );
-}
-
-// Enough of markdown's inline nodes to carry a caption over into HTML.
-function inlineHtml(nodes = []) {
-  return nodes
-    .map((node) => {
-      switch (node.type) {
-        case "text":
-          return escapeAttr(node.value);
-        case "strong":
-          return `<strong>${inlineHtml(node.children)}</strong>`;
-        case "emphasis":
-          return `<em>${inlineHtml(node.children)}</em>`;
-        case "inlineCode":
-          return `<code>${escapeAttr(node.value)}</code>`;
-        case "link": {
-          const external = /^https?:/.test(node.url);
-          return (
-            `<a href="${escapeAttr(node.url)}"` +
-            (external ? ` target="_blank" rel="noopener"` : "") +
-            `>${inlineHtml(node.children)}</a>`
-          );
-        }
-        case "break":
-          return " ";
-        default:
-          return escapeAttr(textOf(node));
-      }
-    })
-    .join("");
 }
 
 function mediaOf(node) {
@@ -191,21 +159,9 @@ export default function remarkMedia() {
       const steam = items.filter((item) => item.type === "steam");
       const tiles = items.filter((item) => item.type !== "steam");
 
-      // A paragraph of prose right under a store link is what the release is to
-      // us — the role on it — so it goes inside the card instead of floating
-      // below it.
-      let role = "";
-      const next = tree.children[index + 1];
-      if (steam.length && !tiles.length && next?.type === "paragraph" && !mediaOf(next)) {
-        role = `<p class="release-role"><span>Моя роль</span>${inlineHtml(next.children)}</p>`;
-        index += 1;
-      }
-
       const html =
         (steam.length
-          ? `<div class="steam-embeds">${steam
-              .map((item) => `<div class="release">${steamCard(item)}${role}</div>`)
-              .join("")}</div>`
+          ? `<div class="steam-embeds">${steam.map(steamCard).join("")}</div>`
           : "") +
         // Tiles written in one paragraph share a row: as many columns as there
         // are tiles, four at most, so a long row does not shrink to stamps.
