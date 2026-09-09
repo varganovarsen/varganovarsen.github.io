@@ -201,11 +201,21 @@ export default function remarkMedia() {
       const tiles = items.filter((item) => item.type !== "steam");
 
       // The paragraph right after a store link is the role on that game, so it
-      // goes into the same bar, behind a divider.
+      // goes into the same bar, behind a divider. A link to a project page in
+      // that paragraph is lifted out: the whole half becomes that link, which
+      // reads better than the words "Подробнее" sitting inside the text.
       let role = "";
       const next = tree.children[index + 1];
       if (steam.length && !tiles.length && next?.type === "paragraph" && !mediaOf(next)) {
-        role = `<p class="release-role">${inlineHtml(next.children)}</p>`;
+        const project = next.children.find(
+          (child) => child.type === "link" && child.url.startsWith("/projects/")
+        );
+        const rest = next.children.filter((child) => child !== project);
+        const text = inlineHtml(rest).trim().replace(/[.\s]+$/, "");
+
+        role = project
+          ? `<a class="release-role" href="${escapeAttr(project.url)}">${text}</a>`
+          : `<p class="release-role">${text}</p>`;
         index += 1;
       }
 

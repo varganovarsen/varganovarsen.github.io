@@ -39,4 +39,4 @@ title: "Нижняя часть главной"
 
 ---
 
-[varganovarsen@gmail.com](mailto:varganovarsen@gmail.com) · [Telegram](https://t.me/Arsvarg) · [itch.io](https://arsvarg.itch.io/)
+[varganovarsen@gmail.com](mailto:varganovarsen@gmail.com) · [Telegram](https://t.me/Arsvarg) · [+7 (913) 485-90-04](tel:+79134859004)

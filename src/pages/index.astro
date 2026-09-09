@@ -257,9 +257,15 @@ const description = intro!.body?.split("\n\n")[0]?.replace(/\s+/g, " ").trim().s
     margin: var(--sp-8) 0 var(--sp-3);
   }
 
-  /* One column: pitch, stack, contacts. */
+  /* One column: pitch, stack, contacts. Prose keeps its measure; the chips
+     and the contact line run the full width. */
   .home-intro > * { max-width: 68ch; }
-  .home-intro > blockquote { margin: var(--sp-4) 0 0; }
+  .home-intro > .chips { max-width: none; }
+  .home-intro > blockquote {
+    max-width: none;
+    margin: var(--sp-4) 0 0;
+    text-align: center;
+  }
 
   /* --- Chips (the stack line) --- */
 
@@ -320,15 +326,14 @@ const description = intro!.body?.split("\n\n")[0]?.replace(/\s+/g, " ").trim().s
 
   .home-content .steam-embeds { margin: var(--sp-3) 0; }
 
+  /* Contacts read as a line, like the one in the footer — no panel. */
   .home-content blockquote {
     margin: var(--sp-3) 0;
-    padding: var(--sp-2) var(--sp-3);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: var(--bg-elevated);
+    padding: 0;
+    border: none;
+    color: var(--text-dim);
   }
-  .home-content blockquote p { margin: var(--sp-1) 0; }
-  .home-content blockquote > :first-child { margin-top: 0; }
+  .home-content blockquote p { margin: 0; }
 
   .home-content hr {
     border: none;

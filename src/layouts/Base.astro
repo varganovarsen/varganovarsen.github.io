@@ -374,9 +374,11 @@ const ogImage = new URL(image ?? "/og.png", Astro.site);
     font-size: 0.9375rem;
     line-height: 1.4;
   }
-  /* An arrow marks the link as going somewhere, without a word for it. */
-  .release-role a { white-space: nowrap; }
-  .release-role a::after { content: " →"; }
+  a.release-role {
+    color: var(--text-dim);
+    text-decoration: none;
+  }
+  a.release-role:hover { color: var(--accent); background: var(--bg-sunken); }
 
   @media (max-width: 620px) {
     .release { grid-template-columns: 1fr; }
