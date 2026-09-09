@@ -67,14 +67,35 @@ function endpoint() {
   };
 }
 
+// The markdown pipeline and this script are read once, at startup. Watching
+// them makes the dev server restart itself on an edit, instead of quietly
+// serving the old behaviour until someone notices.
+function watchPipeline(addWatchFile, logger) {
+  if (typeof addWatchFile !== "function") return;
+
+  for (const dir of ["src/plugins", "src/dev"]) {
+    let names;
+    try {
+      names = fs.readdirSync(dir);
+    } catch {
+      continue;
+    }
+    for (const name of names) {
+      if (/\.(mjs|js|ts)$/.test(name)) addWatchFile(path.resolve(dir, name));
+    }
+  }
+  logger.info("правки в src/plugins и src/dev перезапускают дев-сервер");
+}
+
 export default function reviewNotes() {
   return {
     name: "review-notes",
     hooks: {
-      "astro:config:setup"({ command, injectScript, updateConfig, logger }) {
+      "astro:config:setup"({ command, injectScript, updateConfig, addWatchFile, logger }) {
         if (command !== "dev") return;
         updateConfig({ vite: { plugins: [endpoint()] } });
         injectScript("page", 'import "/src/dev/review-notes.js";');
+        watchPipeline(addWatchFile, logger);
         logger.info("режим разметки: Alt+A, заметки идут в REVIEW.md");
       },
     },
