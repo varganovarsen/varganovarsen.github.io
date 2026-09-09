@@ -350,12 +350,10 @@ const ogImage = new URL(image ?? "/og.png", Astro.site);
 
   /* The widget document paints a white canvas around its card and keeps the
      browser's 8px body margin. Cropping to the card itself hides both. */
+  /* No border of our own: the widget draws its own edge and corners. */
   .steam-frame {
-    /* 167px of card plus the 1px borders this box now draws. */
-    height: 170px;
+    height: 168px;
     overflow: hidden;
-    border: 1px solid var(--border-strong);
-    border-radius: 12px;
   }
   /* Pulled out of the box by its own margins rather than positioned: if this
      rule ever fails to load, the frame stays where it is in the flow instead
