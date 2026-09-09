@@ -352,18 +352,23 @@ const ogImage = new URL(image ?? "/og.png", Astro.site);
      browser's 8px body margin. Cropping to the card itself hides both. */
   /* No border of our own: the widget draws its own edge and corners. */
   .steam-frame {
-    height: 168px;
+    /* The widget's card is 167px tall; the rest of the frame is its page. */
+    height: 167px;
     overflow: hidden;
   }
-  /* Pulled out of the box by its own margins rather than positioned: if this
-     rule ever fails to load, the frame stays where it is in the flow instead
-     of flying to the top of the page. */
+  /* Only the vertical white is cropped — the widget's document keeps the
+     browser's 8px body margin, and cutting the sides too would shave off its
+     own border and rounded corners. What is left of that margin left and
+     right shows the frame's background, not white.
+     Pulled up by a margin rather than positioned: if this rule ever fails to
+     load, the frame stays in the flow instead of flying to the top of page. */
   .steam-widget {
     display: block;
-    width: calc(100% + 16px);
+    width: 100%;
     height: 190px;
-    margin: -8px 0 0 -8px;
+    margin-top: -8px;
     border: 0;
+    background: var(--bg);
   }
 
   .release-role {
