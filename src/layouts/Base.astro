@@ -337,26 +337,45 @@ const ogImage = new URL(image ?? "/og.png", Astro.site);
     margin: var(--sp-3) 0;
   }
 
-  /* A transparent embedded document still gets a white canvas from the browser,
-     and the iframe element's own background sits behind it — painting it does
-     not help. So the frame is cut to the card: 8px of page margin on every
-     side goes, and the radius Valve's border had is drawn here instead, which
-     is what kept the corners looking chopped. */
-  .steam-frame {
-    height: 167px;
+  /* A 50px bar: the store link on the left, the role beside it. */
+  .release {
+    display: flex;
+    align-items: stretch;
+    min-height: 50px;
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    background: var(--bg-elevated);
     overflow: hidden;
-    border-radius: 6px;
-  }
-  .steam-widget {
-    display: block;
-    width: calc(100% + 16px);
-    /* Taller than the 183px document, so the widget never grows its own
-       scrollbar. The frame crops the slack. */
-    height: 220px;
-    margin: -8px 0 0 -8px;
-    border: 0;
   }
 
+  .steam-link {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-shrink: 0;
+    padding: 0 var(--sp-3);
+    color: var(--text);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .steam-link:hover { color: var(--accent); background: var(--bg-sunken); }
+  .steam-mark { flex-shrink: 0; }
+
+  .release-role {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    padding: var(--sp-1) var(--sp-3);
+    border-left: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 0.9375rem;
+    line-height: 1.4;
+  }
+
+  @media (max-width: 620px) {
+    .release { flex-direction: column; align-items: stretch; }
+    .release-role { border-left: none; border-top: 1px solid var(--border); }
+  }
 
   /* --- Lightbox --- */
 
