@@ -21,14 +21,21 @@ function append(note) {
   const lines = [
     `- [ ] **${note.text.replace(/\s+/g, " ").trim()}**`,
     `  - страница: \`${note.page}\``,
-    `  - элемент: \`${note.selector}\``,
   ];
-  if (note.label) lines.push(`  - текст: «${note.label}»`);
+
+  // A note can be about several elements at once (Shift+click).
+  const targets = note.targets ?? [{ selector: note.selector, label: note.label }];
+  for (const [index, target] of targets.entries()) {
+    const number = targets.length > 1 ? `${index + 1}. ` : "";
+    lines.push(`  - элемент: ${number}\`${target.selector}\``);
+    if (target.label) lines.push(`    - текст: «${target.label}»`);
+  }
+
   lines.push(`  - ${note.viewport}, ${stamp}`);
 
-  const target = path.resolve(FILE);
-  if (!fs.existsSync(target)) fs.writeFileSync(target, HEADER, "utf8");
-  fs.appendFileSync(target, `\n${lines.join("\n")}\n`, "utf8");
+  const file = path.resolve(FILE);
+  if (!fs.existsSync(file)) fs.writeFileSync(file, HEADER, "utf8");
+  fs.appendFileSync(file, `\n${lines.join("\n")}\n`, "utf8");
 }
 
 function endpoint() {

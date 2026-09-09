@@ -1,5 +1,6 @@
 // Dev-only annotation layer: point at an element, type what is wrong with it,
 // and the note lands in REVIEW.md with a selector that identifies it later.
+// Shift+click collects several elements into one note.
 // Loaded only by `astro dev` (see src/plugins/review-notes.mjs).
 
 const ENDPOINT = "/__review-note";
@@ -7,6 +8,8 @@ const ENDPOINT = "/__review-note";
 let armed = false;
 let hovered = null;
 let saved = 0;
+/** Elements gathered with Shift+click, all going into the next note. */
+const picked = [];
 
 // --- chrome ---------------------------------------------------------------
 
@@ -25,10 +28,22 @@ style.textContent = `
     font: inherit; opacity: .6; border: 1px solid currentColor;
     border-radius: 4px; padding: 0 4px;
   }
-  #rn-halo {
+  #rn-halo, .rn-pick {
     position: fixed; z-index: 2147483645; pointer-events: none;
-    border: 2px solid #f2b64c; border-radius: 4px;
-    background: rgba(242,182,76,.12); display: none;
+    border-radius: 4px;
+  }
+  #rn-halo {
+    border: 2px solid #f2b64c; background: rgba(242,182,76,.12); display: none;
+  }
+  .rn-pick {
+    border: 2px solid #7dd3a8; background: rgba(125,211,168,.14);
+  }
+  .rn-pick::after {
+    content: attr(data-index);
+    position: absolute; top: -10px; left: -10px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #7dd3a8; color: #14161c;
+    font: 600 12px/20px system-ui, sans-serif; text-align: center;
   }
   #rn-tag {
     position: fixed; z-index: 2147483645; pointer-events: none; display: none;
@@ -37,7 +52,7 @@ style.textContent = `
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   #rn-form {
-    position: fixed; z-index: 2147483647; display: none; width: min(360px, 90vw);
+    position: fixed; z-index: 2147483647; display: none; width: min(380px, 90vw);
     padding: 10px; border-radius: 10px;
     border: 1px solid #f2b64c; background: #14161c;
     box-shadow: 0 10px 30px rgba(0,0,0,.6);
@@ -54,10 +69,10 @@ style.textContent = `
     font: 11px/1.4 system-ui, sans-serif;
   }
   #rn-target {
-    margin-bottom: 6px; color: #f2b64c;
-    font: 11px/1.4 ui-monospace, monospace;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    margin-bottom: 6px; max-height: 76px; overflow-y: auto;
+    color: #f2b64c; font: 11px/1.5 ui-monospace, monospace;
   }
+  #rn-target div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 `;
 document.head.append(style);
 
@@ -68,7 +83,8 @@ const form = el("div", { id: "rn-form" });
 const targetLine = el("div", { id: "rn-target" });
 const input = el("textarea", { placeholder: "Что не так с этим элементом?" });
 const hint = el("div", { id: "rn-hint" });
-hint.textContent = "Enter — сохранить · Shift+Enter — перенос строки · Esc — отмена";
+hint.textContent =
+  "Shift+клик — добавить ещё элемент · Enter — сохранить · Esc — отмена";
 form.append(targetLine, input, hint);
 document.body.append(bar, halo, tag, form);
 
@@ -79,12 +95,12 @@ function el(tagName, props = {}) {
 function paintBar() {
   bar.dataset.armed = String(armed);
   bar.innerHTML = "";
-  bar.append(
-    document.createTextNode(
-      armed ? "Разметка: наведи и кликни" : "Разметка выключена"
-    ),
-    el("kbd", { textContent: "Alt+A" })
-  );
+  const label = !armed
+    ? "Разметка выключена"
+    : picked.length
+      ? `Выбрано: ${picked.length} · клик — написать замечание`
+      : "Разметка: наведи и кликни";
+  bar.append(document.createTextNode(label), el("kbd", { textContent: "Alt+A" }));
   if (saved) bar.append(el("span", { textContent: `· ${saved}` }));
 }
 paintBar();
@@ -97,10 +113,16 @@ addEventListener("keydown", (event) => {
   if (event.altKey && event.code === "KeyA") {
     event.preventDefault();
     setArmed(!armed);
-  } else if (event.key === "Escape" && form.style.display === "block") {
-    event.preventDefault();
-    event.stopPropagation();
-    closeForm();
+  } else if (event.key === "Escape" && armed) {
+    if (form.style.display === "block") {
+      event.preventDefault();
+      event.stopPropagation();
+      closeForm();
+    } else if (picked.length) {
+      event.preventDefault();
+      event.stopPropagation();
+      clearPicked();
+    }
   }
 });
 
@@ -110,6 +132,7 @@ function setArmed(on) {
     hovered = null;
     halo.style.display = tag.style.display = "none";
     closeForm();
+    clearPicked();
   }
   paintBar();
 }
@@ -150,22 +173,76 @@ addEventListener(
     if (!armed || ours(event.target)) return;
     event.preventDefault();
     event.stopPropagation();
+
+    if (event.shiftKey) {
+      togglePicked(event.target);
+      return;
+    }
     openForm(event.target, event.clientX, event.clientY);
   },
   true
 );
 
+// Shift+click would otherwise extend the text selection under the overlay.
+addEventListener("mousedown", (event) => {
+  if (armed && event.shiftKey && !ours(event.target)) event.preventDefault();
+}, true);
+
 function ours(node) {
   return Boolean(node.closest?.("#rn-bar, #rn-form"));
 }
 
+// --- multi-select ---------------------------------------------------------
+
+function togglePicked(node) {
+  const at = picked.indexOf(node);
+  if (at === -1) picked.push(node);
+  else picked.splice(at, 1);
+  paintPicked();
+  paintBar();
+}
+
+function clearPicked() {
+  picked.length = 0;
+  paintPicked();
+  paintBar();
+}
+
+// One outline per picked element, redrawn whenever the page moves under them.
+function paintPicked() {
+  document.querySelectorAll(".rn-pick").forEach((box) => box.remove());
+  picked.forEach((node, index) => {
+    const box = node.getBoundingClientRect();
+    const marker = el("div", { className: "rn-pick" });
+    marker.dataset.index = String(index + 1);
+    Object.assign(marker.style, {
+      left: `${box.left}px`,
+      top: `${box.top}px`,
+      width: `${box.width}px`,
+      height: `${box.height}px`,
+    });
+    document.body.append(marker);
+  });
+}
+
+addEventListener("scroll", () => picked.length && paintPicked(), true);
+addEventListener("resize", () => picked.length && paintPicked());
+
 // --- writing the note -----------------------------------------------------
 
-let subject = null;
+/** Every element the open form is about: the picked ones plus the clicked one. */
+let subjects = [];
 
 function openForm(node, x, y) {
-  subject = node;
-  targetLine.textContent = selectorFor(node);
+  subjects = picked.includes(node) ? [...picked] : [...picked, node];
+  targetLine.replaceChildren(
+    ...subjects.map((subject, index) =>
+      el("div", {
+        textContent:
+          (subjects.length > 1 ? `${index + 1}. ` : "") + selectorFor(subject),
+      })
+    )
+  );
   input.value = "";
   form.style.display = "block";
   form.style.left = `${Math.min(x, innerWidth - form.offsetWidth - 12)}px`;
@@ -175,7 +252,7 @@ function openForm(node, x, y) {
 
 function closeForm() {
   form.style.display = "none";
-  subject = null;
+  subjects = [];
 }
 
 input.addEventListener("keydown", (event) => {
@@ -187,17 +264,20 @@ input.addEventListener("keydown", (event) => {
 
 async function send() {
   const text = input.value.trim();
-  if (!text || !subject) return closeForm();
+  if (!text || !subjects.length) return closeForm();
 
   const note = {
     text,
-    selector: selectorFor(subject),
-    label: (subject.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 80),
+    targets: subjects.map((subject) => ({
+      selector: selectorFor(subject),
+      label: (subject.textContent ?? "").replace(/\s+/g, " ").trim().slice(0, 80),
+    })),
     page: location.pathname + location.search,
     title: document.title,
     viewport: `${innerWidth}×${innerHeight}`,
   };
   closeForm();
+  clearPicked();
 
   try {
     const response = await fetch(ENDPOINT, {
