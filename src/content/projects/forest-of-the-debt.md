@@ -5,6 +5,7 @@ summary: >-
   Пошаговый тактический roguelike, прототип прошел в финал акселератора «Начни
   игру». Делал геймдизайн, нарратив, код.
 order: 5
+cover: /projects/forest-of-the-debt/cover.avif
 ---
 Пошаговый рогалик про аренду оружия и вылазки в лес с монстрами. Ключевая идея — оружие в аренду. Не можешь платить за аренду — приходят коллекторы.
 
@@ -12,8 +13,6 @@ order: 5
 
 Проект прошел в финал акселератора “Начни игру” в 2024.
 
-# Медиа
+[Itch]([https://arsvarg.itch.io/forest-of-the-debt]\(https://arsvarg.itch.io/forest-of-the-debt\))
 
-[https://arsvarg.itch.io/forest-of-the-debt](https://arsvarg.itch.io/forest-of-the-debt)
-
-[https://youtu.be/9qUkrFWD9nE](https://youtu.be/9qUkrFWD9nE)
+[Тизер-трейлер](https://youtu.be/9qUkrFWD9nE)

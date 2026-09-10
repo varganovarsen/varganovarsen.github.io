@@ -260,6 +260,7 @@ const ogImage = new URL(image ?? "/og.png", Astro.site);
     /* --cols comes from how many tiles the paragraph holds (remark-media). */
     grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr));
     gap: var(--sp-3);
+    align-items: start;
     margin: var(--sp-3) 0;
   }
 
@@ -289,13 +290,32 @@ const ogImage = new URL(image ?? "/og.png", Astro.site);
     transition: border-color 0.15s ease;
   }
   .media-thumb:hover { border-color: var(--accent); }
-  /* Screenshots are usually square or portrait; a taller box wastes less of them. */
-  .media-thumb[data-type="image"] { aspect-ratio: 4 / 3; }
+  /* Screenshots keep their own shape: the tile hugs the image instead of
+     framing it inside a letterboxed box. Tiles in a row stay top-aligned. */
+  .media-thumb[data-type="image"] {
+    aspect-ratio: auto;
+    width: fit-content;
+    max-width: 100%;
+    margin-inline: auto;
+  }
+  .media-thumb[data-type="image"] img {
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 70vh;
+  }
+  .media-item:has(> .media-thumb[data-type="image"]) figcaption { text-align: center; }
   .media-thumb[data-type="video"],
   .media-thumb[data-type="youtube"] { cursor: pointer; }
 
   .media-thumb img,
   .media-thumb video {
+    display: block;
+    /* The tile draws the frame; undo the margin and border .content img adds,
+       which pushed the picture down inside the tile. */
+    margin: 0;
+    border: none;
+    border-radius: 0;
     width: 100%;
     height: 100%;
     /* Screenshots are often square or portrait — never crop them. */
@@ -350,6 +370,9 @@ const ogImage = new URL(image ?? "/og.png", Astro.site);
     overflow: hidden;
   }
 
+  /* A panel written without a role cell (remark-links) keeps the whole bar. */
+  .release-solo { grid-template-columns: 1fr; }
+
   .steam-link {
     display: flex;
     align-items: center;
@@ -384,6 +407,52 @@ const ogImage = new URL(image ?? "/og.png", Astro.site);
     .release { grid-template-columns: 1fr; }
     .release-role { border-left: none; border-top: 1px solid var(--border); }
   }
+
+  /* --- Link chips (remark-links) --- */
+
+  /* Links written as a bare URL: a slim pill instead of the raw address.
+     A paragraph of nothing but such links becomes a wrapping row. */
+  .link-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    margin: var(--sp-3) 0;
+  }
+
+  .link-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    max-width: 100%;
+    padding: 0.2rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--bg-elevated);
+    color: var(--text);
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    text-decoration: none;
+    vertical-align: baseline;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .link-chip:hover { border-color: var(--accent); color: var(--accent); }
+  .link-chip-host { color: var(--text-dim); white-space: nowrap; }
+  .link-chip-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .link-chip-path {
+    min-width: 0;
+    /* Opaque paths (Google Drive ids) trail off instead of stretching the pill. */
+    max-width: 24ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .link-chip-arrow { flex-shrink: 0; opacity: 0.6; }
+  .link-chip:hover .link-chip-arrow { opacity: 1; }
 
   /* --- Lightbox --- */
 

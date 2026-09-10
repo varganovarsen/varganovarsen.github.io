@@ -121,7 +121,7 @@ function tile(item) {
 // A slim bar: the Steam mark and the game's name, both linking to the store.
 // The store's own widget is an iframe whose document cannot be styled from
 // here, which is why this is ours.
-const STEAM_MARK =
+export const STEAM_MARK =
   '<svg class="steam-mark" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">' +
   '<path fill="currentColor" d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 ' +
   '1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 ' +
@@ -181,8 +181,20 @@ function mediaOf(node) {
 
   const items = meaningful.map(asMedia);
   // Only convert paragraphs that are nothing but media, so prose is untouched.
-  if (items.length === 0 || items.some((item) => item === null)) return null;
+  if (items.length === 0 || items.some((item) => item === null)) return typedLink(node);
   return items;
+}
+
+// Markdown typed into the WYSIWYG editor is saved escaped, so the paragraph
+// reads "[caption](https://youtu.be/...)" as plain text. Take it for the link it means.
+const TYPED_LINK = /^!?\[([^\]]*)\]\((\S+?)\)$/;
+
+function typedLink(node) {
+  const match = textOf(node).trim().match(TYPED_LINK);
+  if (!match) return null;
+  const [, label, url] = match;
+  const item = fromUrl(url, label.trim() === url ? "" : label.trim());
+  return item ? [item] : null;
 }
 
 export default function remarkMedia() {

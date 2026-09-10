@@ -26,8 +26,11 @@ pnpm-debug.log*
 # Notion export, source material for the initial import
 Notion/
 
-# Notion export, source material for the initial import
-Notion/
+# Review notes written by the dev annotation mode
+REVIEW.md
+
+# Crash dumps from MSYS tools
+*.stackdump
 
 # Raw video sources: too large for the repo, compressed copies live in public/
 media-src/

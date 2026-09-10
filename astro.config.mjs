@@ -6,6 +6,7 @@ import node from '@astrojs/node';
 import remarkMedia from './src/plugins/remark-media.mjs';
 import remarkDemoteHeadings from './src/plugins/remark-demote-headings.mjs';
 import remarkChips from './src/plugins/remark-chips.mjs';
+import remarkLinks from './src/plugins/remark-links.mjs';
 import sitemap from '@astrojs/sitemap';
 import reviewNotes from './src/plugins/review-notes.mjs';
 
@@ -16,7 +17,7 @@ const cms = process.env.KEYSTATIC === '1';
 export default defineConfig({
   site: 'https://varganovarsen.github.io',
   output: 'static',
-  markdown: { remarkPlugins: [remarkDemoteHeadings, remarkMedia, remarkChips] },
+  markdown: { remarkPlugins: [remarkDemoteHeadings, remarkMedia, remarkLinks, remarkChips] },
   integrations: cms
     ? [sitemap(), reviewNotes(), react(), keystatic()]
     : [sitemap(), reviewNotes()],

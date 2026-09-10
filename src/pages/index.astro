@@ -11,8 +11,10 @@ const projects = entries.map((entry) => ({
 }));
 
 const intro = await getEntry("home", "intro");
+const releases = await getEntry("home", "releases");
 const outro = await getEntry("home", "outro");
 const { Content: Intro } = await render(intro!);
+const { Content: Releases } = await render(releases!);
 const { Content: Outro } = await render(outro!);
 
 const description = intro!.body?.split("\n\n")[0]?.replace(/\s+/g, " ").trim().slice(0, 200);
@@ -25,6 +27,10 @@ const description = intro!.body?.split("\n\n")[0]?.replace(/\s+/g, " ").trim().s
 
     <div class="content home-content home-intro">
       <Intro />
+    </div>
+
+    <div class="content home-content">
+      <Releases />
     </div>
 
     <section>

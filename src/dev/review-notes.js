@@ -15,6 +15,16 @@ const picked = [];
 
 const style = document.createElement("style");
 style.textContent = `
+  /* Our chrome lives in the top layer — popovers, and a dialog for the form —
+     so undo the UA styling that comes with that and keep the rules below in
+     charge. */
+  #rn-bar, #rn-halo, #rn-tag, #rn-form, .rn-pick {
+    inset: auto; width: auto; height: auto;
+    max-width: none; max-height: none; margin: 0; padding: 0;
+    border: 0; background: none; color: inherit; overflow: visible;
+  }
+  /* The form is modal, but nothing behind it should dim. */
+  #rn-form::backdrop { background: transparent; }
   #rn-bar {
     position: fixed; left: 12px; bottom: 12px; z-index: 2147483646;
     display: flex; align-items: center; gap: 10px;
@@ -33,7 +43,7 @@ style.textContent = `
     border-radius: 4px;
   }
   #rn-halo {
-    border: 2px solid #f2b64c; background: rgba(242,182,76,.12); display: none;
+    border: 2px solid #f2b64c; background: rgba(242,182,76,.12);
   }
   .rn-pick {
     border: 2px solid #7dd3a8; background: rgba(125,211,168,.14);
@@ -46,13 +56,13 @@ style.textContent = `
     font: 600 12px/20px system-ui, sans-serif; text-align: center;
   }
   #rn-tag {
-    position: fixed; z-index: 2147483645; pointer-events: none; display: none;
+    position: fixed; z-index: 2147483645; pointer-events: none;
     padding: 2px 6px; border-radius: 4px; background: #f2b64c; color: #14161c;
     font: 11px/1.4 ui-monospace, monospace; max-width: 60vw;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   #rn-form {
-    position: fixed; z-index: 2147483647; display: none; width: min(380px, 90vw);
+    position: fixed; z-index: 2147483647; width: min(380px, 90vw);
     padding: 10px; border-radius: 10px;
     border: 1px solid #f2b64c; background: #14161c;
     box-shadow: 0 10px 30px rgba(0,0,0,.6);
@@ -76,10 +86,13 @@ style.textContent = `
 `;
 document.head.append(style);
 
-const bar = el("div", { id: "rn-bar", title: "Alt+A" });
-const halo = el("div", { id: "rn-halo" });
-const tag = el("div", { id: "rn-tag" });
-const form = el("div", { id: "rn-form" });
+const bar = el("div", { id: "rn-bar", title: "Alt+A", popover: "manual" });
+const halo = el("div", { id: "rn-halo", popover: "manual" });
+const tag = el("div", { id: "rn-tag", popover: "manual" });
+// A modal dialog inerts everything outside itself — top-layer popovers included —
+// so the note form has to be a modal dialog of its own to stay typeable while the
+// site's drawer or lightbox is open. Opened last, it is the topmost one and wins.
+const form = el("dialog", { id: "rn-form" });
 const targetLine = el("div", { id: "rn-target" });
 const input = el("textarea", { placeholder: "Что не так с этим элементом?" });
 const hint = el("div", { id: "rn-hint" });
@@ -87,10 +100,45 @@ hint.textContent =
   "Shift+клик — добавить ещё элемент · Enter — сохранить · Esc — отмена";
 form.append(targetLine, input, hint);
 document.body.append(bar, halo, tag, form);
+show(bar);
 
 function el(tagName, props = {}) {
   return Object.assign(document.createElement(tagName), props);
 }
+
+// --- top layer ------------------------------------------------------------
+
+// The site opens its drawer and its lightbox with `showModal()`, which paints
+// them in the top layer and marks the rest of the document inert — an ordinary
+// overlay would be hidden behind them. The read-only chrome is popovers (same
+// top layer, painted above); the form, which has to be clicked into, is a modal
+// dialog — see where it is created.
+
+function show(node) {
+  if (!node.matches(":popover-open")) node.showPopover();
+}
+
+function hide(node) {
+  if (node.matches(":popover-open")) node.hidePopover();
+}
+
+// A dialog opened after us lands on top of us; re-showing climbs back over it.
+// Not while the form is open, though — the form is a dialog too, and raising the
+// outlines over the note being written is exactly what we do not want.
+function raise() {
+  if (form.open) return;
+  for (const node of [bar, ...document.querySelectorAll(".rn-pick"), halo, tag]) {
+    if (node.matches(":popover-open")) {
+      node.hidePopover();
+      node.showPopover();
+    }
+  }
+}
+
+new MutationObserver(raise).observe(document.documentElement, {
+  subtree: true,
+  attributeFilter: ["open"],
+});
 
 function paintBar() {
   bar.dataset.armed = String(armed);
@@ -114,7 +162,7 @@ addEventListener("keydown", (event) => {
     event.preventDefault();
     setArmed(!armed);
   } else if (event.key === "Escape" && armed) {
-    if (form.style.display === "block") {
+    if (form.open) {
       event.preventDefault();
       event.stopPropagation();
       closeForm();
@@ -130,7 +178,8 @@ function setArmed(on) {
   armed = on;
   if (!on) {
     hovered = null;
-    halo.style.display = tag.style.display = "none";
+    hide(halo);
+    hide(tag);
     closeForm();
     clearPicked();
   }
@@ -140,7 +189,7 @@ function setArmed(on) {
 addEventListener(
   "mousemove",
   (event) => {
-    if (!armed || form.style.display === "block") return;
+    if (!armed || form.open) return;
     const node = document.elementFromPoint(event.clientX, event.clientY);
     if (!node || node === hovered || ours(node)) return;
     hovered = node;
@@ -151,15 +200,15 @@ addEventListener(
 
 function frame(node) {
   const box = node.getBoundingClientRect();
+  show(halo);
   Object.assign(halo.style, {
-    display: "block",
     left: `${box.left}px`,
     top: `${box.top}px`,
     width: `${box.width}px`,
     height: `${box.height}px`,
   });
   tag.textContent = selectorFor(node);
-  tag.style.display = "block";
+  show(tag);
   // Above the element, unless that would run off the top of the screen.
   tag.style.left = `${Math.max(4, box.left)}px`;
   tag.style.top = box.top > 22 ? `${box.top - 20}px` : `${box.bottom + 4}px`;
@@ -213,7 +262,7 @@ function paintPicked() {
   document.querySelectorAll(".rn-pick").forEach((box) => box.remove());
   picked.forEach((node, index) => {
     const box = node.getBoundingClientRect();
-    const marker = el("div", { className: "rn-pick" });
+    const marker = el("div", { className: "rn-pick", popover: "manual" });
     marker.dataset.index = String(index + 1);
     Object.assign(marker.style, {
       left: `${box.left}px`,
@@ -222,6 +271,7 @@ function paintPicked() {
       height: `${box.height}px`,
     });
     document.body.append(marker);
+    show(marker);
   });
 }
 
@@ -244,16 +294,26 @@ function openForm(node, x, y) {
     )
   );
   input.value = "";
-  form.style.display = "block";
+  form.showModal();
   form.style.left = `${Math.min(x, innerWidth - form.offsetWidth - 12)}px`;
   form.style.top = `${Math.min(y + 12, innerHeight - form.offsetHeight - 12)}px`;
   input.focus();
 }
 
 function closeForm() {
-  form.style.display = "none";
+  if (form.open) form.close();
   subjects = [];
 }
+
+// Escape reaches the form as `cancel`, since it is the topmost modal.
+form.addEventListener("cancel", () => {
+  subjects = [];
+});
+
+// Clicking away from the form — its own backdrop — drops the note.
+form.addEventListener("click", (event) => {
+  if (event.target === form) closeForm();
+});
 
 input.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && !event.shiftKey) {
