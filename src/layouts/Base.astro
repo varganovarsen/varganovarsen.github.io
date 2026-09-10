@@ -1,23 +1,33 @@
 ---
 import "@fontsource-variable/inter";
+import { defaultLocale, locales, localizePath, ui, unlocalizePath, type Locale } from "../i18n";
 
 interface Props {
   title: string;
+  locale: Locale;
   description?: string;
   image?: string;
+  /** Locales this page exists in, linked to one another with hreflang. */
+  alternates?: readonly Locale[];
 }
 
 const {
   title,
-  description = "Геймдизайнер. Unity, Godot, C#, инструменты и пайплайны.",
+  locale,
+  description = ui[locale].description,
   image,
+  alternates = locales,
 } = Astro.props;
 
+const t = ui[locale];
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const ogImage = new URL(image ?? "/og.png", Astro.site);
+
+const page = unlocalizePath(Astro.url.pathname);
+const translations = alternates.length > 1 ? alternates : [];
 ---
 <!doctype html>
-<html lang="ru">
+<html lang={t.htmlLang}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -25,9 +35,16 @@ const ogImage = new URL(image ?? "/og.png", Astro.site);
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
+    {translations.map((l) => (
+      <link rel="alternate" hreflang={ui[l].htmlLang} href={new URL(localizePath(page, l), Astro.site)} />
+    ))}
+    {translations.includes(defaultLocale) && (
+      <link rel="alternate" hreflang="x-default" href={new URL(page, Astro.site)} />
+    )}
 
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Варганов Арсений — портфолио" />
+    <meta property="og:site_name" content={t.siteName} />
+    <meta property="og:locale" content={t.ogLocale} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
@@ -41,7 +58,7 @@ const ogImage = new URL(image ?? "/og.png", Astro.site);
     <slot />
 
     <dialog id="lightbox">
-      <button id="lightbox-close" type="button" aria-label="Закрыть">✕</button>
+      <button id="lightbox-close" type="button" aria-label={t.close}>✕</button>
       <div id="lightbox-stage"></div>
       <p id="lightbox-caption"></p>
     </dialog>

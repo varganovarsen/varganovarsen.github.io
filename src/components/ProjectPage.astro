@@ -1,0 +1,53 @@
+---
+import Base from "../layouts/Base.astro";
+import { render, type CollectionEntry } from "astro:content";
+import { localizePath, ui, type Locale } from "../i18n";
+
+interface Props {
+  entry: CollectionEntry<"projects"> | CollectionEntry<"projectsEn">;
+  locale: Locale;
+  alternates: Locale[];
+}
+
+const { entry, locale, alternates } = Astro.props;
+const t = ui[locale];
+const { Content } = await render(entry);
+// Only an explicit cover is 16:9; a screenshot pulled from the text would be
+// letterboxed by social cards, so those fall back to the site image.
+---
+<Base
+  title={`${entry.data.title} — ${t.author}`}
+  description={entry.data.summary}
+  image={entry.data.cover}
+  locale={locale}
+  alternates={alternates}
+>
+  <main class="wrap">
+    <a class="back" href={localizePath("/", locale)}>← {t.portfolio}</a>
+
+    <div id="project-body">
+      <header class="project-head">
+        <h1>{entry.data.title}</h1>
+        <p class="period">{entry.data.period}</p>
+      </header>
+
+      <article class="content">
+        <Content />
+      </article>
+    </div>
+  </main>
+</Base>
+
+<style>
+  /* A single article does not need the full grid width. */
+  .wrap { max-width: 820px; }
+
+  .back {
+    display: inline-block;
+    margin-bottom: var(--sp-3);
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 0.9375rem;
+  }
+  .back:hover { color: var(--accent); }
+</style>

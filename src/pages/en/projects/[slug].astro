@@ -1,0 +1,9 @@
+---
+import ProjectPage from "../../../components/ProjectPage.astro";
+import { projectPaths } from "../../../i18n";
+
+export function getStaticPaths() {
+  return projectPaths("en");
+}
+---
+<ProjectPage {...Astro.props} />

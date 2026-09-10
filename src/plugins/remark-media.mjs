@@ -13,7 +13,20 @@ const VIDEO = /\.(mp4|webm|mov|m4v)$/i;
 const YOUTUBE = /^https?:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{6,})/;
 const STEAM = /^https?:\/\/store\.steampowered\.com\/app\/(\d+)/;
 
-const TYPE_LABEL = { image: "Скриншот", video: "Видео", youtube: "Видео на YouTube" };
+// Accessible names for tiles without a caption, in the language of the page.
+const LABELS = {
+  ru: { image: "Скриншот", video: "Видео", youtube: "Видео на YouTube", steam: "Страница в Steam" },
+  en: { image: "Screenshot", video: "Video", youtube: "YouTube video", steam: "Steam page" },
+};
+
+// English content lives under src/content/en/; everything else is Russian.
+function labelsFor(file) {
+  const filePath = (file?.path ?? "").replace(/\\/g, "/");
+  return /\/content\/en\//.test(filePath) ? LABELS.en : LABELS.ru;
+}
+
+// A project page in any locale: /projects/<slug>/ or /en/projects/<slug>/.
+const PROJECT_PAGE = /^(?:\/[a-z]{2})?\/projects\//;
 
 // A video tile shows its poster before playback starts. Pick up an image sitting
 // next to the file, e.g. clip.mp4 -> clip.jpg.
@@ -84,10 +97,10 @@ function asMedia(node) {
   return null;
 }
 
-function tile(item) {
+function tile(item, labels) {
   const caption = item.caption ? `<figcaption>${escapeAttr(item.caption)}</figcaption>` : "";
   const badge = item.type === "image" ? "" : `<span class="media-badge">▶</span>`;
-  const label = item.caption || TYPE_LABEL[item.type];
+  const label = item.caption || labels[item.type];
 
   let inner;
   if (item.type === "video") {
@@ -134,8 +147,8 @@ export const STEAM_MARK =
   '-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265' +
   '-1.014-2.265-2.265z"/></svg>';
 
-function steamCard(item) {
-  const name = escapeAttr(item.caption || "Страница в Steam");
+function steamCard(item, labels) {
+  const name = escapeAttr(item.caption || labels.steam);
   return (
     `<a class="steam-link" href="${escapeAttr(item.url)}" target="_blank" rel="noopener">` +
     `${STEAM_MARK}<span>${name}</span></a>`
@@ -198,7 +211,8 @@ function typedLink(node) {
 }
 
 export default function remarkMedia() {
-  return (tree) => {
+  return (tree, file) => {
+    const labels = labelsFor(file);
     const out = [];
 
     for (let index = 0; index < tree.children.length; index += 1) {
@@ -220,7 +234,7 @@ export default function remarkMedia() {
       const next = tree.children[index + 1];
       if (steam.length && !tiles.length && next?.type === "paragraph" && !mediaOf(next)) {
         const project = next.children.find(
-          (child) => child.type === "link" && child.url.startsWith("/projects/")
+          (child) => child.type === "link" && PROJECT_PAGE.test(child.url)
         );
         const rest = next.children.filter((child) => child !== project);
         const text = inlineHtml(rest).trim().replace(/[.\s]+$/, "");
@@ -234,14 +248,14 @@ export default function remarkMedia() {
       const html =
         (steam.length
           ? `<div class="steam-embeds">${steam
-              .map((item) => `<div class="release">${steamCard(item)}${role}</div>`)
+              .map((item) => `<div class="release">${steamCard(item, labels)}${role}</div>`)
               .join("")}</div>`
           : "") +
         // Tiles written in one paragraph share a row: as many columns as there
         // are tiles, four at most, so a long row does not shrink to stamps.
         (tiles.length
           ? `<div class="media" style="--cols:${Math.min(tiles.length, 4)}">` +
-            `${tiles.map(tile).join("")}</div>`
+            `${tiles.map((item) => tile(item, labels)).join("")}</div>`
           : "");
 
       out.push({ type: "html", value: html });

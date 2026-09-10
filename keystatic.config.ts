@@ -10,15 +10,13 @@ const assetLocation = {
 
 const imageUpload = { image: assetLocation } as const;
 
-export default config({
-  storage: { kind: "local" },
-  ui: {
-    brand: { name: "Портфолио" },
-  },
-  singletons: {
+// Each locale gets the same set of entries; English content sits under
+// src/content/en/ and shares the images in public/projects/.
+function homeSingletons(dir: string, prefix: string) {
+  return {
     intro: singleton({
-      label: "Главная — до проектов",
-      path: "src/content/home/intro",
+      label: `${prefix}Главная — до проектов`,
+      path: `${dir}/home/intro`,
       format: { contentField: "content" },
       schema: {
         title: fields.text({ label: "Имя", description: "Крупный заголовок страницы" }),
@@ -26,8 +24,8 @@ export default config({
       },
     }),
     releases: singleton({
-      label: "Главная — релизы (над проектами)",
-      path: "src/content/home/releases",
+      label: `${prefix}Главная — релизы (над проектами)`,
+      path: `${dir}/home/releases`,
       format: { contentField: "content" },
       schema: {
         title: fields.text({ label: "Служебное название" }),
@@ -35,52 +33,76 @@ export default config({
       },
     }),
     outro: singleton({
-      label: "Главная — после проектов",
-      path: "src/content/home/outro",
+      label: `${prefix}Главная — после проектов`,
+      path: `${dir}/home/outro`,
       format: { contentField: "content" },
       schema: {
         title: fields.text({ label: "Служебное название" }),
         content: fields.mdx({ label: "Текст", extension: "md", options: imageUpload }),
       },
     }),
+  };
+}
+
+function projectsCollection(dir: string, prefix: string) {
+  return collection({
+    label: `${prefix}Проекты`,
+    // No trailing slash: entries stay flat files, <dir>/projects/<slug>.md
+    path: `${dir}/projects/*`,
+    slugField: "title",
+    format: { contentField: "content" },
+    columns: ["title", "period"],
+    schema: {
+      title: fields.slug({
+        name: { label: "Название" },
+        slug: {
+          label: "Адрес страницы (slug)",
+          description: "Должен совпадать у русской и английской версий проекта",
+        },
+      }),
+      period: fields.text({ label: "Период", description: "Например: 2025 или 2020-∞" }),
+      summary: fields.text({
+        label: "Краткое описание",
+        description: "Текст на карточке в сетке проектов",
+        multiline: true,
+      }),
+      order: fields.integer({
+        label: "Порядок",
+        description: "Чем меньше число, тем выше карточка",
+      }),
+      cover: fields.image({
+        label: "Обложка",
+        description: "Картинка карточки в сетке проектов (16:9)",
+        ...assetLocation,
+      }),
+      content: fields.mdx({
+        label: "Содержание",
+        description:
+          "Чип: {Goops|https://…} — прямо в тексте. " +
+          "Панель: |Intersectio|https://…|Роль| — отдельной строкой, роль можно не писать.",
+        extension: "md",
+        options: imageUpload,
+      }),
+    },
+  });
+}
+
+const ru = homeSingletons("src/content", "");
+const en = homeSingletons("src/content/en", "EN · ");
+
+export default config({
+  storage: { kind: "local" },
+  ui: {
+    brand: { name: "Портфолио" },
+  },
+  singletons: {
+    ...ru,
+    introEn: en.intro,
+    releasesEn: en.releases,
+    outroEn: en.outro,
   },
   collections: {
-    projects: collection({
-      label: "Проекты",
-      // No trailing slash: entries stay flat files, src/content/projects/<slug>.md
-      path: "src/content/projects/*",
-      slugField: "title",
-      format: { contentField: "content" },
-      columns: ["title", "period"],
-      schema: {
-        title: fields.slug({
-          name: { label: "Название" },
-          slug: { label: "Адрес страницы (slug)" },
-        }),
-        period: fields.text({ label: "Период", description: "Например: 2025 или 2020-∞" }),
-        summary: fields.text({
-          label: "Краткое описание",
-          description: "Текст на карточке в сетке проектов",
-          multiline: true,
-        }),
-        order: fields.integer({
-          label: "Порядок",
-          description: "Чем меньше число, тем выше карточка",
-        }),
-        cover: fields.image({
-          label: "Обложка",
-          description: "Картинка карточки в сетке проектов (16:9)",
-          ...assetLocation,
-        }),
-        content: fields.mdx({
-          label: "Содержание",
-          description:
-            "Чип: {Goops|https://…} — прямо в тексте. " +
-            "Панель: |Intersectio|https://…|Роль| — отдельной строкой, роль можно не писать.",
-          extension: "md",
-          options: imageUpload,
-        }),
-      },
-    }),
+    projects: projectsCollection("src/content", ""),
+    projectsEn: projectsCollection("src/content/en", "EN · "),
   },
 });
