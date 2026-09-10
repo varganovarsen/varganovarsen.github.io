@@ -13,6 +13,8 @@ cover: /projects/forest-of-the-debt/cover.avif
 
 Проект прошел в финал акселератора “Начни игру” в 2024.
 
+![Презентация проекта в финале акселератора](/projects/forest-of-the-debt/image.png)
+
 [Itch]([https://arsvarg.itch.io/forest-of-the-debt]\(https://arsvarg.itch.io/forest-of-the-debt\))
 
 [Тизер-трейлер](https://youtu.be/9qUkrFWD9nE)
